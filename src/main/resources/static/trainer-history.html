@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plan Shark 训练历史</title>
+    <style>
+        :root {
+            --bg: #0e1014;
+            --panel: rgba(22, 25, 31, 0.94);
+            --panel-soft: rgba(32, 35, 42, 0.92);
+            --line: rgba(255,255,255,0.08);
+            --ink: #f4f6f8;
+            --muted: #98a2af;
+            --accent: #1de5c0;
+            --gto: #ff9f1a;
+            --shadow: 0 20px 60px rgba(0,0,0,0.42);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--ink);
+            font-family: "Avenir Next", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background:
+                radial-gradient(circle at 20% 0%, rgba(29,229,192,0.10), transparent 28%),
+                radial-gradient(circle at 80% 20%, rgba(255,159,26,0.08), transparent 24%),
+                linear-gradient(180deg, #111419 0%, #090b0e 100%);
+        }
+
+        .shell {
+            width: min(1440px, calc(100% - 28px));
+            margin: 18px auto 32px;
+        }
+
+        .topbar,
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            padding: 20px 22px;
+            margin-bottom: 18px;
+        }
+
+        h1, h2, h3, p { margin: 0; }
+
+        h1 {
+            font-size: clamp(28px, 3vw, 44px);
+            letter-spacing: -0.04em;
+        }
+
+        p {
+            color: var(--muted);
+            line-height: 1.65;
+            margin-top: 8px;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        button,
+        .nav-link {
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            background: rgba(255,255,255,0.05);
+            color: var(--ink);
+            padding: 11px 14px;
+            font: inherit;
+            font-weight: 800;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        button.primary,
+        .nav-link.primary {
+            border-color: rgba(29,229,192,0.48);
+            background: rgba(29,229,192,0.12);
+            color: #d7fff7;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 360px minmax(0, 1fr);
+            gap: 18px;
+        }
+
+        .panel {
+            padding: 18px;
+            min-height: 360px;
+        }
+
+        .section-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .section-title span {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .session-list,
+        .hand-list,
+        .operation-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .session-card,
+        .hand-card,
+        .operation-row {
+            width: 100%;
+            text-align: left;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            background: rgba(255,255,255,0.04);
+            color: var(--ink);
+            padding: 13px;
+        }
+
+        .session-card {
+            cursor: pointer;
+        }
+
+        .session-card.active {
+            border-color: rgba(29,229,192,0.55);
+            background: rgba(29,229,192,0.10);
+        }
+
+        .session-card b,
+        .hand-card b {
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .session-card span,
+        .hand-card span,
+        .operation-row span {
+            display: block;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .metric {
+            padding: 13px;
+            border-radius: 16px;
+            background: var(--panel-soft);
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .metric small {
+            display: block;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .metric strong {
+            display: block;
+            margin-top: 6px;
+            font-size: 24px;
+            letter-spacing: -0.04em;
+        }
+
+        .cards {
+            display: inline-flex;
+            gap: 4px;
+            vertical-align: middle;
+        }
+
+        .inline-card {
+            display: inline-flex;
+            min-width: 32px;
+            justify-content: center;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.08);
+            font-weight: 900;
+        }
+
+        .inline-card.red { color: #ff8b82; }
+        .inline-card.black { color: #edf1f8; }
+
+        .operation-row {
+            display: grid;
+            grid-template-columns: 72px 80px minmax(0, 1fr) auto;
+            gap: 10px;
+            align-items: start;
+        }
+
+        .operation-row.hero { border-color: rgba(29,229,192,0.30); }
+        .operation-row.gto { border-color: rgba(255,159,26,0.30); }
+
+        .empty {
+            padding: 22px;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.035);
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        @media (max-width: 940px) {
+            .topbar,
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .topbar {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .operation-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="shell">
+    <header class="topbar">
+        <div>
+            <h1>训练历史</h1>
+            <p id="playerLine">正在读取玩家信息...</p>
+        </div>
+        <div class="actions">
+            <a class="nav-link primary" href="/trainer">回到训练</a>
+            <a class="nav-link" href="/login">切换模式</a>
+            <button id="refreshButton">刷新历史</button>
+        </div>
+    </header>
+
+    <div class="grid">
+        <aside class="panel">
+            <div class="section-title">
+                <h2>Session 列表</h2>
+                <span id="sessionCount">0 个</span>
+            </div>
+            <div class="session-list" id="sessionList"></div>
+        </aside>
+
+        <main class="panel">
+            <div class="section-title">
+                <h2>手牌与行为分析</h2>
+                <span id="detailTitle">请选择一个 session</span>
+            </div>
+            <div class="summary-grid" id="summaryGrid"></div>
+            <div class="hand-list" id="handList"></div>
+        </main>
+    </div>
+</div>
+
+<script>
+    let currentPlayer = null;
+    let sessions = [];
+    let selectedSessionId = null;
+
+    const playerLine = document.getElementById("playerLine");
+    const sessionCount = document.getElementById("sessionCount");
+    const sessionList = document.getElementById("sessionList");
+    const detailTitle = document.getElementById("detailTitle");
+    const summaryGrid = document.getElementById("summaryGrid");
+    const handList = document.getElementById("handList");
+
+    document.getElementById("refreshButton").addEventListener("click", () => loadSessions(selectedSessionId));
+    bootstrap();
+
+    async function bootstrap() {
+        try {
+            const response = await fetch("/api/auth/me");
+            if (!response.ok) {
+                window.location.href = "/login";
+                return;
+            }
+            currentPlayer = await response.json();
+            playerLine.textContent = `${currentPlayer.displayName || currentPlayer.username} (${currentPlayer.username}) · 当前模式 ${currentPlayer.mode || "CASH"}`;
+            await loadSessions();
+        } catch (error) {
+            window.location.href = "/login";
+        }
+    }
+
+    async function loadSessions(preferredSessionId = selectedSessionId) {
+        sessionList.innerHTML = `<div class="empty">正在读取历史 session...</div>`;
+        const response = await fetch("/api/trainer/history/sessions?limit=50");
+        const data = await response.json();
+        if (!response.ok) {
+            sessionList.innerHTML = `<div class="empty">${escapeHtml(data.error || "读取历史失败")}</div>`;
+            return;
+        }
+        sessions = Array.isArray(data) ? data : [];
+        selectedSessionId = preferredSessionId || (sessions[0] && sessions[0].sessionId);
+        renderSessions();
+        if (selectedSessionId) {
+            await loadSessionDetail(selectedSessionId);
+        } else {
+            renderEmptyDetail();
+        }
+    }
+
+    function renderSessions() {
+        sessionCount.textContent = `${sessions.length} 个`;
+        if (sessions.length === 0) {
+            sessionList.innerHTML = `<div class="empty">当前玩家和模式下还没有训练历史。回到训练页完成一个 session 后，这里会自动出现。</div>`;
+            return;
+        }
+        sessionList.innerHTML = sessions.map(session => `
+            <button class="session-card ${session.sessionId === selectedSessionId ? "active" : ""}" data-session-id="${escapeHtml(session.sessionId)}">
+                <b>${escapeHtml(session.status)} · GTO ${session.gtoScorePercent}%</b>
+                <span>${escapeHtml(session.mode)} · ${session.handsPlayed}/${session.totalHands} 手牌 · ${session.actionsTaken} 次行动</span>
+                <span>${formatDateTime(session.startedAt)} · ${escapeHtml(shortSessionId(session.sessionId))}</span>
+            </button>
+        `).join("");
+        sessionList.querySelectorAll("button[data-session-id]").forEach(button => {
+            button.addEventListener("click", async () => {
+                selectedSessionId = button.dataset.sessionId;
+                renderSessions();
+                await loadSessionDetail(selectedSessionId);
+            });
+        });
+    }
+
+    async function loadSessionDetail(sessionId) {
+        detailTitle.textContent = shortSessionId(sessionId);
+        handList.innerHTML = `<div class="empty">正在读取手牌和行动记录...</div>`;
+        const [handsResponse, operationsResponse] = await Promise.all([
+            fetch(`/api/trainer/history/session/${encodeURIComponent(sessionId)}/hands`),
+            fetch(`/api/trainer/history/session/${encodeURIComponent(sessionId)}/operations`)
+        ]);
+        const hands = await handsResponse.json();
+        const operations = await operationsResponse.json();
+        if (!handsResponse.ok || !operationsResponse.ok) {
+            handList.innerHTML = `<div class="empty">${escapeHtml(hands.error || operations.error || "读取详情失败")}</div>`;
+            return;
+        }
+        renderSummary(sessions.find(session => session.sessionId === sessionId));
+        renderHands(Array.isArray(hands) ? hands : [], Array.isArray(operations) ? operations : []);
+    }
+
+    function renderSummary(session) {
+        if (!session) {
+            summaryGrid.innerHTML = "";
+            return;
+        }
+        summaryGrid.innerHTML = `
+            <div class="metric"><small>GTO分数</small><strong>${session.gtoScorePercent}%</strong></div>
+            <div class="metric"><small>手牌</small><strong>${session.handsPlayed}/${session.totalHands}</strong></div>
+            <div class="metric"><small>行动</small><strong>${session.actionsTaken}</strong></div>
+            <div class="metric"><small>原始分</small><strong>${formatScore(session.rawGtoScore)}/${session.maxGtoScore}</strong></div>
+        `;
+    }
+
+    function renderHands(hands, operations) {
+        if (hands.length === 0) {
+            handList.innerHTML = `<div class="empty">这个 session 暂无手牌明细。</div>`;
+            return;
+        }
+        handList.innerHTML = hands.map(hand => {
+            const handOperations = operations.filter(operation => operation.handNumber === hand.handNumber);
+            return `
+                <article class="hand-card">
+                    <b>第 ${hand.handNumber} 手 · ${escapeHtml(hand.scenarioType)} · ${formatScore(hand.handScore)}%</b>
+                    <span>Hero ${escapeHtml(hand.heroPosition)} vs GTO ${escapeHtml(hand.gtoOpponentPosition)} · ${formatCardSequence(splitHeroHand(hand.heroHand))} · Board ${formatCardSequence(splitBoardCards(hand.boardCards))}</span>
+                    <span>${escapeHtml(hand.behaviorAnalysis || hand.summary || "暂无分析")}</span>
+                    <div class="operation-list">${handOperations.map(renderOperation).join("") || `<div class="operation-row"><span>暂无行动记录</span></div>`}</div>
+                </article>
+            `;
+        }).join("");
+    }
+
+    function renderOperation(operation) {
+        const actorClass = String(operation.actor || "").toLowerCase();
+        return `
+            <div class="operation-row ${actorClass}">
+                <span>${escapeHtml(operation.street)}</span>
+                <span>${escapeHtml(operation.actor)}${operation.playerPosition ? " · " + escapeHtml(operation.playerPosition) : ""}</span>
+                <span>${formatHistoryLine(operation.detail || operation.actionText)}${operation.analysis ? `<br>${escapeHtml(operation.analysis)}` : ""}</span>
+                <span>${operation.scoreCategory ? `${escapeHtml(operation.scoreCategory)} · ${operation.deltaScore}分` : operation.automatic ? "系统" : ""}</span>
+            </div>
+        `;
+    }
+
+    function renderEmptyDetail() {
+        detailTitle.textContent = "暂无 session";
+        summaryGrid.innerHTML = "";
+        handList.innerHTML = `<div class="empty">暂无训练历史。</div>`;
+    }
+
+    function splitHeroHand(heroHand) {
+        if (!heroHand || heroHand.length !== 4) {
+            return [];
+        }
+        return [heroHand.slice(0, 2), heroHand.slice(2, 4)];
+    }
+
+    function splitBoardCards(boardCards) {
+        const text = String(boardCards || "");
+        const cards = [];
+        for (let index = 0; index + 1 < text.length; index += 2) {
+            cards.push(text.slice(index, index + 2));
+        }
+        return cards;
+    }
+
+    function formatCardSequence(cards) {
+        if (!cards || cards.length === 0) {
+            return "无";
+        }
+        return `<span class="cards">${cards.map(renderInlineCard).join("")}</span>`;
+    }
+
+    function renderInlineCard(cardCode) {
+        const card = parseCardCode(cardCode);
+        if (!card) {
+            return escapeHtml(cardCode);
+        }
+        return `<span class="inline-card ${card.isRed ? "red" : "black"}">${card.rank}${card.suit}</span>`;
+    }
+
+    function parseCardCode(cardCode) {
+        if (!cardCode || cardCode.length < 2) {
+            return null;
+        }
+        const rank = String(cardCode[0]).toUpperCase();
+        const suitKey = String(cardCode[1]).toLowerCase();
+        const suitMap = {
+            s: {symbol: "♠", red: false},
+            h: {symbol: "♥", red: true},
+            d: {symbol: "♦", red: true},
+            c: {symbol: "♣", red: false}
+        };
+        const suit = suitMap[suitKey];
+        if (!suit) {
+            return null;
+        }
+        return {
+            rank: rank === "T" ? "10" : rank,
+            suit: suit.symbol,
+            isRed: suit.red
+        };
+    }
+
+    function formatHistoryLine(line) {
+        return escapeHtml(line).replace(/\b([2-9TJQKA])([shdc])\b/gi, (_, rank, suit) => renderInlineCard(`${rank}${suit}`));
+    }
+
+    function formatScore(value) {
+        const number = Number(value || 0);
+        return Number.isInteger(number) ? String(number) : number.toFixed(1);
+    }
+
+    function shortSessionId(sessionId) {
+        const text = String(sessionId || "");
+        return text.length > 12 ? `${text.slice(0, 8)}...` : text;
+    }
+
+    function formatDateTime(value) {
+        if (!value) {
+            return "时间未知";
+        }
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+            return String(value).replace("T", " ");
+        }
+        return date.toLocaleString("zh-CN", {
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit"
+        });
+    }
+
+    function escapeHtml(text) {
+        return String(text)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#39;");
+    }
+</script>
+</body>
+</html>
