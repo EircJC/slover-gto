@@ -130,9 +130,11 @@ public final class TrainerModels {
             String heroPosition,
             String gtoOpponentPosition,
             String heroHand,
+            String opponentHand,
             List<String> board,
             String scenarioType,
             double handScore,
+            String outcomeLabel,
             String summary,
             String behaviorAnalysis,
             List<OperationView> operations

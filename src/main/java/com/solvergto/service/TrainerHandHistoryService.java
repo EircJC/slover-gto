@@ -26,9 +26,11 @@ public class TrainerHandHistoryService {
                 history.heroPosition(),
                 history.gtoOpponentPosition(),
                 history.heroHand(),
+                history.opponentHand(),
                 String.join("", history.board()),
                 history.scenarioType(),
                 history.handScore(),
+                history.outcomeLabel(),
                 history.summary(),
                 history.behaviorAnalysis()
         ));

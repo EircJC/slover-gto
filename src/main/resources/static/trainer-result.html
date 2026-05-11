@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plan Shark 训练结果</title>
+    <style>
+        :root {
+            --bg: #0e1014;
+            --panel: rgba(22, 25, 31, 0.94);
+            --panel-soft: rgba(32, 35, 42, 0.92);
+            --line: rgba(255,255,255,0.08);
+            --ink: #f4f6f8;
+            --muted: #98a2af;
+            --accent: #1de5c0;
+            --gto: #ff9f1a;
+            --danger: #ff6f67;
+            --shadow: 0 20px 60px rgba(0,0,0,0.42);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--ink);
+            font-family: "Avenir Next", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background:
+                radial-gradient(circle at 18% 0%, rgba(29,229,192,0.11), transparent 30%),
+                radial-gradient(circle at 82% 12%, rgba(255,159,26,0.09), transparent 24%),
+                linear-gradient(180deg, #111419 0%, #090b0e 100%);
+        }
+
+        .shell {
+            width: min(1440px, calc(100% - 28px));
+            margin: 18px auto 32px;
+        }
+
+        .topbar,
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 22px;
+            margin-bottom: 18px;
+        }
+
+        h1, h2, h3, p { margin: 0; }
+
+        h1 {
+            font-size: clamp(28px, 3vw, 44px);
+            letter-spacing: -0.04em;
+        }
+
+        p {
+            color: var(--muted);
+            line-height: 1.65;
+            margin-top: 8px;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .nav-link,
+        button {
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            background: rgba(255,255,255,0.05);
+            color: var(--ink);
+            padding: 11px 14px;
+            font: inherit;
+            font-weight: 800;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .nav-link.primary {
+            border-color: rgba(29,229,192,0.45);
+            background: rgba(29,229,192,0.12);
+            color: #d7fff7;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 340px minmax(0, 1fr);
+            gap: 18px;
+        }
+
+        .panel {
+            padding: 18px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .metric {
+            padding: 14px;
+            border-radius: 16px;
+            background: var(--panel-soft);
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .metric small {
+            display: block;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .metric strong {
+            display: block;
+            margin-top: 6px;
+            font-size: 26px;
+            letter-spacing: -0.04em;
+        }
+
+        .meta-card,
+        .session-card,
+        .hand-card,
+        .operation-row {
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            background: rgba(255,255,255,0.04);
+        }
+
+        .meta-card {
+            margin-top: 14px;
+            padding: 14px;
+        }
+
+        .meta-card + .meta-card {
+            margin-top: 12px;
+        }
+
+        .meta-card strong {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--muted);
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .meta-card div {
+            line-height: 1.65;
+            color: #e7ecf5;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 900;
+            background: rgba(29,229,192,0.12);
+            color: #d7fff7;
+        }
+
+        .status-pill.partial {
+            background: rgba(255,159,26,0.14);
+            color: #ffd59b;
+        }
+
+        .hand-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .hand-card {
+            padding: 16px;
+        }
+
+        .hand-card h3 {
+            font-size: 20px;
+            letter-spacing: -0.03em;
+        }
+
+        .hand-card p {
+            margin-top: 10px;
+        }
+
+        .hand-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .result-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 7px 12px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.08);
+            color: #eef3fa;
+            font-size: 13px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .result-pill.win {
+            background: rgba(29,229,192,0.14);
+            color: #d7fff7;
+        }
+
+        .result-pill.loss {
+            background: rgba(255,111,103,0.14);
+            color: #ffc6c0;
+        }
+
+        .result-pill.chop {
+            background: rgba(255,159,26,0.14);
+            color: #ffd59b;
+        }
+
+        .cards {
+            display: inline-flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            vertical-align: middle;
+        }
+
+        .inline-card {
+            display: inline-flex;
+            min-width: 32px;
+            justify-content: center;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.08);
+            font-weight: 900;
+        }
+
+        .inline-card.red { color: #ff8b82; }
+        .inline-card.black { color: #edf1f8; }
+
+        .operation-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .operation-row {
+            padding: 12px;
+            display: grid;
+            grid-template-columns: 74px 90px minmax(0, 1fr) auto;
+            gap: 10px;
+            align-items: start;
+        }
+
+        .operation-row.hero { border-color: rgba(29,229,192,0.28); }
+        .operation-row.gto { border-color: rgba(255,159,26,0.28); }
+        .operation-row.system,
+        .operation-row.board { border-color: rgba(255,255,255,0.12); }
+
+        .score-pill {
+            display: inline-flex;
+            align-items: center;
+            min-height: 26px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.08);
+            font-size: 12px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .empty {
+            padding: 22px;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.035);
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        @media (max-width: 980px) {
+            .topbar,
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .operation-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="shell">
+    <header class="topbar">
+        <div>
+            <h1>训练结果</h1>
+            <p id="playerLine">正在读取玩家与 session 信息...</p>
+        </div>
+        <div class="actions">
+            <a class="nav-link primary" href="/trainer">回到训练</a>
+            <a class="nav-link" href="/trainer/history">训练历史</a>
+            <a class="nav-link" href="/login">切换模式</a>
+        </div>
+    </header>
+
+    <div class="layout">
+        <aside class="panel">
+            <div class="summary-grid" id="summaryGrid"></div>
+            <div class="meta-card">
+                <strong>Session 信息</strong>
+                <div id="sessionMeta">正在读取...</div>
+            </div>
+            <div class="meta-card">
+                <strong>配置快照</strong>
+                <div id="configMeta">正在读取...</div>
+            </div>
+        </aside>
+
+        <main class="panel">
+            <div id="handList" class="hand-list">
+                <div class="empty">正在读取手牌结果...</div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script>
+    const sessionId = new URLSearchParams(window.location.search).get("sessionId");
+    const playerLine = document.getElementById("playerLine");
+    const summaryGrid = document.getElementById("summaryGrid");
+    const sessionMeta = document.getElementById("sessionMeta");
+    const configMeta = document.getElementById("configMeta");
+    const handList = document.getElementById("handList");
+
+    bootstrap();
+
+    async function bootstrap() {
+        if (!sessionId) {
+            playerLine.textContent = "缺少 sessionId 参数。";
+            summaryGrid.innerHTML = "";
+            sessionMeta.textContent = "请从训练页或训练历史页进入该页面。";
+            configMeta.textContent = "暂无配置。";
+            handList.innerHTML = `<div class="empty">未指定需要查看的训练 session。</div>`;
+            return;
+        }
+
+        try {
+            const authResponse = await fetch("/api/auth/me");
+            if (!authResponse.ok) {
+                window.location.href = "/login";
+                return;
+            }
+            const player = await authResponse.json();
+            playerLine.textContent = `${player.displayName || player.username} (${player.username}) · 当前模式 ${player.mode || "CASH"} · Session ${shortSessionId(sessionId)}`;
+
+            const [sessionResponse, handsResponse, operationsResponse] = await Promise.all([
+                fetch(`/api/trainer/history/session/${encodeURIComponent(sessionId)}`),
+                fetch(`/api/trainer/history/session/${encodeURIComponent(sessionId)}/hands`),
+                fetch(`/api/trainer/history/session/${encodeURIComponent(sessionId)}/operations`)
+            ]);
+
+            const session = await sessionResponse.json();
+            const hands = await handsResponse.json();
+            const operations = await operationsResponse.json();
+
+            if (!sessionResponse.ok || !handsResponse.ok || !operationsResponse.ok) {
+                throw new Error(session.error || hands.error || operations.error || "读取训练结果失败");
+            }
+
+            renderSummary(session);
+            renderMeta(session);
+            renderHands(Array.isArray(hands) ? hands : [], Array.isArray(operations) ? operations : []);
+        } catch (error) {
+            summaryGrid.innerHTML = "";
+            sessionMeta.textContent = error.message;
+            configMeta.textContent = "暂无配置。";
+            handList.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`;
+        }
+    }
+
+    function renderSummary(session) {
+        summaryGrid.innerHTML = `
+            <div class="metric"><small>GTO分数</small><strong>${session.gtoScorePercent}%</strong></div>
+            <div class="metric"><small>手牌</small><strong>${session.handsPlayed}/${session.totalHands}</strong></div>
+            <div class="metric"><small>行动</small><strong>${session.actionsTaken}</strong></div>
+            <div class="metric"><small>原始分</small><strong>${formatScore(session.rawGtoScore)}/${session.maxGtoScore}</strong></div>
+        `;
+    }
+
+    function renderMeta(session) {
+        const config = parseConfig(session.configJson);
+        const statusClass = session.status === "COMPLETED" ? "" : "partial";
+        sessionMeta.innerHTML = `
+            <div><span class="status-pill ${statusClass}">${escapeHtml(session.status || "UNKNOWN")}</span></div>
+            <div>开始时间：${formatDateTime(session.startedAt)}</div>
+            <div>完成时间：${formatDateTime(session.finishedAt)}</div>
+            <div>更新时间：${formatDateTime(session.updatedAt)}</div>
+            <div>模式：${escapeHtml(session.mode || "CASH")}</div>
+        `;
+        configMeta.innerHTML = `
+            <div>Hero 位置：${escapeHtml(config.heroPosition || "随机")}</div>
+            <div>GTO 对手位置：${escapeHtml(config.gtoOpponentPosition || "随机")}</div>
+            <div>场景：${formatScenario(config.scenarioType)}</div>
+            <div>盲注：${escapeHtml(config.blindLevel || "1/2")}</div>
+            <div>总筹码：${formatAmount(config.totalStack || 100)}</div>
+            <div>Session 手数：${escapeHtml(String(config.sessionHands || session.totalHands || 0))}</div>
+        `;
+    }
+
+    function renderHands(hands, operations) {
+        if (hands.length === 0) {
+            handList.innerHTML = `<div class="empty">这个 session 暂无手牌结果。</div>`;
+            return;
+        }
+
+        handList.innerHTML = hands.map(hand => {
+            const handOperations = operations.filter(operation => operation.handNumber === hand.handNumber);
+            const resultClass = hand.outcomeLabel?.includes("Hero 赢") ? "win"
+                : hand.outcomeLabel?.includes("GTO 赢") || hand.outcomeLabel?.includes("告负") ? "loss"
+                : hand.outcomeLabel?.includes("平分") ? "chop" : "";
+            const showOpponentCards = hand.completed && !String(hand.outcomeLabel || "").includes("弃牌");
+            return `
+                <article class="hand-card">
+                    <div class="hand-head">
+                        <div>
+                            <h3>第 ${hand.handNumber} 手 · ${escapeHtml(hand.scenarioType || "未知场景")}</h3>
+                            <p>Hero ${escapeHtml(hand.heroPosition)} vs GTO ${escapeHtml(hand.gtoOpponentPosition)} · 本手 GTO 分数 ${formatScore(hand.handScore)}%</p>
+                        </div>
+                        <div class="result-pill ${resultClass}">${escapeHtml(hand.outcomeLabel || "未结束")}</div>
+                    </div>
+                    <p>Hero 手牌：${formatCardSequence(splitCombo(hand.heroHand))}</p>
+                    <p>GTO 手牌：${showOpponentCards ? formatCardSequence(splitCombo(hand.opponentHand)) : "未亮牌"}</p>
+                    <p>公共牌：${formatCardSequence(splitBoardCards(hand.boardCards))}</p>
+                    <p>${escapeHtml(hand.summary || "暂无摘要")} · ${escapeHtml(hand.behaviorAnalysis || "暂无分析")}</p>
+                    <div class="operation-list">
+                        ${handOperations.length > 0 ? handOperations.map(renderOperation).join("") : `<div class="operation-row"><div>暂无行动记录</div></div>`}
+                    </div>
+                </article>
+            `;
+        }).join("");
+    }
+
+    function renderOperation(operation) {
+        const actorClass = String(operation.actor || "").toLowerCase();
+        const scoreText = operation.scoreCategory ? `${escapeHtml(operation.scoreCategory)} · ${operation.deltaScore}分` : operation.automatic ? "系统" : "";
+        return `
+            <div class="operation-row ${actorClass}">
+                <div>${escapeHtml(operation.street || "")}</div>
+                <div>${escapeHtml(operation.actor || "")}${operation.playerPosition ? ` · ${escapeHtml(operation.playerPosition)}` : ""}</div>
+                <div>${formatHistoryLine(operation.detail || operation.actionText || "")}${operation.analysis ? `<br>${escapeHtml(operation.analysis)}` : ""}</div>
+                <div>${scoreText ? `<span class="score-pill">${scoreText}</span>` : ""}</div>
+            </div>
+        `;
+    }
+
+    function parseConfig(configJson) {
+        if (!configJson) {
+            return {};
+        }
+        try {
+            return JSON.parse(configJson);
+        } catch (error) {
+            return {};
+        }
+    }
+
+    function formatScenario(value) {
+        const mapping = {
+            RANDOM: "随机",
+            OPEN_RAISE: "加注开池",
+            FACING_RAISE: "面对加注",
+            FACING_3BET: "面对3bet",
+            FACING_4BET: "面对4bet",
+            FACING_5BET: "面对5bet",
+            RAISE_CALL: "面对加注-跟注",
+            VS_SQUEEZE: "对抗挤压",
+            FACING_LIMP: "面对溜入",
+            FACING_ISOLATION: "面对隔离"
+        };
+        return mapping[value] || value || "随机";
+    }
+
+    function splitCombo(combo) {
+        if (!combo || combo.length !== 4) {
+            return [];
+        }
+        return [combo.slice(0, 2), combo.slice(2, 4)];
+    }
+
+    function splitBoardCards(boardCards) {
+        const text = String(boardCards || "");
+        const cards = [];
+        for (let index = 0; index + 1 < text.length; index += 2) {
+            cards.push(text.slice(index, index + 2));
+        }
+        return cards;
+    }
+
+    function formatCardSequence(cards) {
+        if (!cards || cards.length === 0) {
+            return "无";
+        }
+        return `<span class="cards">${cards.map(renderInlineCard).join("")}</span>`;
+    }
+
+    function renderInlineCard(cardCode) {
+        const card = parseCardCode(cardCode);
+        if (!card) {
+            return escapeHtml(cardCode);
+        }
+        return `<span class="inline-card ${card.isRed ? "red" : "black"}">${card.rank}${card.suit}</span>`;
+    }
+
+    function parseCardCode(cardCode) {
+        if (!cardCode || cardCode.length < 2) {
+            return null;
+        }
+        const rank = String(cardCode[0]).toUpperCase();
+        const suitKey = String(cardCode[1]).toLowerCase();
+        const suitMap = {
+            s: {symbol: "♠", red: false},
+            h: {symbol: "♥", red: true},
+            d: {symbol: "♦", red: true},
+            c: {symbol: "♣", red: false}
+        };
+        const suit = suitMap[suitKey];
+        if (!suit) {
+            return null;
+        }
+        return {
+            rank: rank === "T" ? "10" : rank,
+            suit: suit.symbol,
+            isRed: suit.red
+        };
+    }
+
+    function formatHistoryLine(line) {
+        return escapeHtml(line).replace(/\b([2-9TJQKA])([shdc])\b/gi, (_, rank, suit) => renderInlineCard(`${rank}${suit}`));
+    }
+
+    function formatScore(value) {
+        const number = Number(value || 0);
+        return Number.isInteger(number) ? String(number) : number.toFixed(1);
+    }
+
+    function formatAmount(value) {
+        const number = Number(value || 0);
+        return Number.isInteger(number) ? number.toLocaleString("zh-CN") : number.toLocaleString("zh-CN", {maximumFractionDigits: 2});
+    }
+
+    function shortSessionId(value) {
+        const text = String(value || "");
+        return text.length > 12 ? `${text.slice(0, 8)}...` : text;
+    }
+
+    function formatDateTime(value) {
+        if (!value) {
+            return "时间未知";
+        }
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+            return String(value).replace("T", " ");
+        }
+        return date.toLocaleString("zh-CN", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit"
+        });
+    }
+
+    function escapeHtml(text) {
+        return String(text)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#39;");
+    }
+</script>
+</body>
+</html>

@@ -125,9 +125,11 @@ CREATE TABLE IF NOT EXISTS trainer_hand_history (
     hero_position VARCHAR(8) NOT NULL COMMENT 'Hero位置，例如BTN、BB',
     gto_opponent_position VARCHAR(8) NOT NULL COMMENT 'GTO对手位置，例如BB、BTN',
     hero_hand VARCHAR(4) NOT NULL COMMENT 'Hero两张手牌，例如AsKd',
+    opponent_hand VARCHAR(4) NULL COMMENT 'GTO对手两张手牌，例如KhQh，未摊牌时也会按训练样本保存',
     board_cards VARCHAR(16) NULL COMMENT '完整公共牌，按两位一张牌连续存储',
     scenario_type VARCHAR(32) NOT NULL COMMENT '训练场景类型，例如面对3bet或对抗挤压',
     hand_score DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '该手当前GTO百分比分数，按已完成决策街数折算',
+    outcome_label VARCHAR(64) NULL COMMENT '该手牌最终结果说明，例如Hero赢下摊牌、Hero弃牌告负或双方平分底池',
     summary VARCHAR(255) NULL COMMENT '该手牌摘要，例如已完成和本手得分',
     behavior_analysis VARCHAR(512) NULL COMMENT '该手牌行为分析，说明错误点或策略特点',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间',
@@ -161,3 +163,10 @@ CREATE TABLE IF NOT EXISTS trainer_operation (
     UNIQUE KEY uk_trainer_operation_seq (session_id, hand_number, sequence_no),
     KEY idx_trainer_operation_player_mode (player_id, mode, hand_number)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='训练操作流水表，记录每手牌内Hero、GTO和发牌动作';
+
+ALTER TABLE trainer_session
+    MODIFY COLUMN status VARCHAR(16) NOT NULL DEFAULT 'RUNNING' COMMENT 'session状态，RUNNING、HAND_DONE或COMPLETED';
+
+ALTER TABLE trainer_hand_history
+    ADD COLUMN IF NOT EXISTS opponent_hand VARCHAR(4) NULL COMMENT 'GTO对手两张手牌，例如KhQh，未摊牌时也会按训练样本保存' AFTER hero_hand,
+    ADD COLUMN IF NOT EXISTS outcome_label VARCHAR(64) NULL COMMENT '该手牌最终结果说明，例如Hero赢下摊牌、Hero弃牌告负或双方平分底池' AFTER hand_score;

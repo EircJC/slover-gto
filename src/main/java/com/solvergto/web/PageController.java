@@ -21,6 +21,11 @@ public class PageController {
         return "forward:/trainer-history.html";
     }
 
+    @GetMapping("/trainer/result")
+    public String trainerResult() {
+        return "forward:/trainer-result.html";
+    }
+
     @GetMapping("/login")
     public String login() {
         return "forward:/auth.html";

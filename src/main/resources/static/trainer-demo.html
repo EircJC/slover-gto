@@ -359,9 +359,9 @@
 
         .blind-display {
             position: absolute;
-            left: 50%;
-            top: 34%;
-            transform: translate(-50%, -50%);
+            left: 18px;
+            top: 18px;
+            transform: none;
             z-index: 3;
             padding: 8px 13px;
             border-radius: 999px;
@@ -492,6 +492,54 @@
             gap: 10px;
         }
 
+        .showdown-hand {
+            position: absolute;
+            left: 50%;
+            top: 60%;
+            z-index: 3;
+            transform: translate(-50%, -50%);
+            display: none;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 8px;
+            border-radius: 14px;
+            background: rgba(255,159,26,0.10);
+            border: 1px solid rgba(255,159,26,0.26);
+            box-shadow: 0 16px 40px rgba(0,0,0,0.28);
+            pointer-events: none;
+            max-width: 150px;
+        }
+
+        .showdown-hand.show {
+            display: inline-flex;
+        }
+
+        .showdown-hand::before {
+            content: "GTO";
+            color: #ffcf86;
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+        }
+
+        .showdown-hand .card {
+            width: 38px;
+            height: 54px;
+            border-radius: 10px;
+        }
+
+        .showdown-hand .card-rank {
+            font-size: 12px;
+        }
+
+        .showdown-hand .card-suit {
+            font-size: 10px;
+        }
+
+        .showdown-hand .card-pip {
+            font-size: 18px;
+        }
+
         .action-history {
             padding: 14px 16px;
             border-radius: 18px;
@@ -538,7 +586,6 @@
             margin-top: 14px;
         }
 
-        .operation-panel,
         .session-history {
             margin-top: 14px;
             padding: 16px;
@@ -547,7 +594,6 @@
             border: 1px solid rgba(255,255,255,0.08);
         }
 
-        .operation-panel strong,
         .session-history strong {
             display: block;
             color: var(--muted);
@@ -557,87 +603,148 @@
             margin-bottom: 10px;
         }
 
-        .operation-list {
+        .oplog-panel {
+            height: 400px;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+            gap: 12px;
+            padding: 16px;
+            border-radius: 22px;
+            background:
+                linear-gradient(180deg, rgba(29,229,192,0.055), transparent 42%),
+                rgba(7, 10, 14, 0.82);
+            border: 1px solid rgba(255,255,255,0.09);
+            overflow: hidden;
+        }
+
+        .oplog-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            min-height: 24px;
+        }
+
+        .oplog-title strong {
+            color: var(--muted);
+            font-size: 12px;
+            letter-spacing: 0.10em;
+            text-transform: uppercase;
+        }
+
+        .oplog-title span {
+            color: rgba(215,255,247,0.72);
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .oplog-list {
             display: flex;
             flex-direction: column;
             gap: 10px;
-            flex: 1;
             min-height: 0;
             overflow-y: auto;
+            overflow-x: hidden;
             padding-right: 6px;
             overscroll-behavior: contain;
+            position: relative;
         }
 
-        .operation-row {
-            display: grid;
-            grid-template-columns: minmax(56px, auto) minmax(0, 1fr) auto;
-            grid-template-areas:
-                "stage actor score"
-                "detail detail detail";
-            column-gap: 12px;
-            row-gap: 6px;
-            align-items: start;
-            padding: 10px 12px;
+        .oplog-item {
+            position: relative;
+            inset: auto;
+            left: auto;
+            top: auto;
+            right: auto;
+            bottom: auto;
+            transform: none;
+            width: 100%;
+            min-width: 0;
+            flex: 0 0 auto;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 11px 12px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.045);
+            border: 1px solid rgba(255,255,255,0.07);
+            box-shadow: none;
+        }
+
+        .oplog-item.oplog-actor-hero {
+            border-color: rgba(29,229,192,0.34);
+            background: rgba(29,229,192,0.075);
+        }
+
+        .oplog-item.oplog-actor-gto {
+            border-color: rgba(255,159,26,0.34);
+            background: rgba(255,159,26,0.065);
+        }
+
+        .oplog-item.oplog-actor-board {
+            border-color: rgba(180,190,205,0.22);
+            background: rgba(255,255,255,0.035);
+        }
+
+        .oplog-step {
+            flex: 0 0 42px;
+            width: 42px;
+            height: 42px;
             border-radius: 14px;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #d7fff7;
+            background: rgba(255,255,255,0.07);
+            font-size: 13px;
+            font-weight: 900;
         }
 
-        .operation-row.hero {
-            border-color: rgba(29,229,192,0.28);
+        .oplog-body {
+            flex: 1 1 auto;
+            min-width: 0;
         }
 
-        .operation-row.gto {
-            border-color: rgba(255,159,26,0.28);
+        .oplog-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 5px;
         }
 
-        .operation-row.board {
-            opacity: 0.84;
-        }
-
-        .operation-stage,
-        .operation-actor,
-        .operation-score {
-            font-size: 12px;
+        .oplog-street,
+        .oplog-actor,
+        .oplog-score {
+            display: inline-flex;
+            align-items: center;
+            min-height: 22px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.06);
             color: var(--muted);
-            font-weight: 800;
-            line-height: 1.45;
-            overflow-wrap: anywhere;
+            font-size: 12px;
+            font-weight: 900;
+            line-height: 1.2;
         }
 
-        .operation-stage {
-            grid-area: stage;
+        .oplog-score {
+            color: #f5d76a;
         }
 
-        .operation-actor {
-            grid-area: actor;
-            min-width: 0;
-        }
-
-        .operation-detail {
-            grid-area: detail;
-            color: #e8edf5;
+        .oplog-text {
+            color: #eef3fa;
+            font-size: 14px;
             line-height: 1.55;
-            min-width: 0;
             overflow-wrap: anywhere;
         }
 
-        .operation-score {
-            grid-area: score;
-            justify-self: end;
-            text-align: right;
-            white-space: nowrap;
-        }
-
-        .operation-row > .operation-detail:first-child:last-child {
-            grid-column: 1 / -1;
-        }
-
-        .operation-analysis {
+        .oplog-note {
             margin-top: 5px;
             color: var(--muted);
             font-size: 13px;
             line-height: 1.5;
+            overflow-wrap: anywhere;
         }
 
         .session-history {
@@ -831,8 +938,32 @@
             display: none;
         }
 
-        .hand-summary-zone .operation-row {
-            margin: 0;
+        .hand-summary-card {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.045);
+            border: 1px solid rgba(255,255,255,0.075);
+        }
+
+        .hand-summary-detail {
+            min-width: 0;
+            color: #e8edf5;
+            line-height: 1.55;
+            overflow-wrap: anywhere;
+        }
+
+        .hand-summary-score {
+            align-self: start;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(29,229,192,0.12);
+            color: #d7fff7;
+            font-size: 13px;
+            font-weight: 900;
+            white-space: nowrap;
         }
 
         .hand-history-zone {
@@ -868,12 +999,8 @@
             max-height: 120px;
         }
 
-        .record-zone .operation-panel {
+        .record-zone .oplog-panel {
             margin-top: 0;
-            height: 220px;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
         }
 
         .feedback h3 {
@@ -1086,21 +1213,6 @@
                 grid-template-columns: 1fr;
             }
 
-            .operation-row {
-                grid-template-columns: 1fr;
-                grid-template-areas:
-                    "stage"
-                    "actor"
-                    "score"
-                    "detail";
-            }
-
-            .operation-score {
-                justify-self: start;
-                text-align: left;
-                white-space: normal;
-            }
-
             .history-card-grid {
                 grid-template-columns: 1fr;
             }
@@ -1189,6 +1301,7 @@
                 </div>
                 <div class="blind-display" id="blindDisplay">Blinds 1/2</div>
                 <div class="board" id="boardArea"></div>
+                <div class="showdown-hand" id="gtoHandArea"></div>
                 <div class="hero-hand" id="heroHandArea"></div>
             </div>
 
@@ -1233,11 +1346,9 @@
         </div>
         <div class="hand-history-zone">
             <div class="hand-summary-zone hidden" id="handSummaryPanel">
-                <div class="operation-row">
-                    <div class="operation-stage">手牌</div>
-                    <div class="operation-actor">INFO</div>
-                    <div class="operation-detail" id="handSummaryDetail">暂无手牌摘要。</div>
-                    <div class="operation-score" id="handSummaryScore">0%</div>
+                <div class="hand-summary-card">
+                    <div class="hand-summary-detail" id="handSummaryDetail">暂无手牌摘要。</div>
+                    <div class="hand-summary-score" id="handSummaryScore">0%</div>
                 </div>
             </div>
             <div class="session-history" id="sessionHistoryPanel">
@@ -1246,11 +1357,17 @@
             </div>
         </div>
         <div class="record-zone">
-            <div class="operation-panel" id="operationPanel">
-                <strong>玩家行动记录</strong>
-                <div class="operation-list" id="operationList">
-                    <div class="operation-row">
-                        <div class="operation-detail">开始训练后，这里会按时间顺序展示 Hero 与 GTO 对手的每一步操作。</div>
+            <div class="oplog-panel" id="operationPanel">
+                <div class="oplog-title">
+                    <strong>玩家行动记录</strong>
+                    <span>Action Log</span>
+                </div>
+                <div class="oplog-list" id="operationList">
+                    <div class="oplog-item">
+                        <div class="oplog-step">--</div>
+                        <div class="oplog-body">
+                            <div class="oplog-text">开始训练后，这里会按时间顺序展示 Hero 与 GTO 对手的每一步操作。</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1454,6 +1571,8 @@
     const seatLayer = document.getElementById("seatLayer");
     const boardArea = document.getElementById("boardArea");
     const heroHandArea = document.getElementById("heroHandArea");
+    const gtoHandArea = document.getElementById("gtoHandArea");
+    const tableWrap = document.querySelector(".table-wrap");
     const potDisplay = document.getElementById("potDisplay");
     const blindDisplay = document.getElementById("blindDisplay");
     const historyLines = document.getElementById("historyLines");
@@ -1599,13 +1718,31 @@
     }
 
     function renderCompleted() {
-        boardArea.innerHTML = "";
-        heroHandArea.innerHTML = "";
+        const lastHistory = (activeSession.handHistories || [])[activeSession.handHistories.length - 1];
+        if (lastHistory) {
+            renderResolvedSeatLayer(lastHistory);
+            boardArea.innerHTML = renderBoard(lastHistory.board);
+            heroHandArea.innerHTML = renderHeroHand(lastHistory.heroHand);
+            if (lastHistory.outcomeLabel && !String(lastHistory.outcomeLabel).includes("弃牌")) {
+                showGtoShowdown(lastHistory.opponentHand, lastHistory.heroPosition, lastHistory.gtoOpponentPosition);
+            } else {
+                hideGtoShowdown();
+            }
+        } else {
+            seatLayer.innerHTML = "";
+            boardArea.innerHTML = "";
+            heroHandArea.innerHTML = "";
+            hideGtoShowdown();
+        }
         updatePotDisplay(0);
         historyLines.innerHTML = "<div>本次训练已完成。可以调整设置后再次开始。</div>";
         spotCopy.textContent = "Session 结束。你可以查看左侧分数与行动统计，再切换位置、场景或手牌筛选重新开始下一组训练。";
-        actionBar.innerHTML = `<button class="action-btn aggressive" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })">回到顶部重新配置</button>`;
-        seatLayer.innerHTML = "";
+        actionBar.innerHTML = `
+            <button class="start-btn" id="resultPageButton">训练结果</button>
+            <button class="action-btn aggressive" id="scrollTopButton">回到顶部重新配置</button>
+        `;
+        document.getElementById("resultPageButton").addEventListener("click", () => openResultPage(activeSession.sessionId));
+        document.getElementById("scrollTopButton").addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
         feedbackPanel.classList.add("show");
         feedbackTitle.textContent = "训练完成";
         feedbackSummary.textContent = "这一轮 session 已经结束。";
@@ -1618,8 +1755,21 @@
     }
 
     function renderHandBreak(session) {
-        historyLines.innerHTML = `<div>第 ${session.currentHandNumber} 手牌已完成。点击下方按钮进入下一手。</div>`;
-        spotCopy.textContent = `本手四条街已经结束。当前累计行动数 ${session.stats.actionsTaken}，原始得分 ${formatScore(session.stats.rawGtoScore)} / ${session.stats.maxGtoScore}，GTO 分数 ${session.stats.gtoScorePercent}%。`;
+        const history = (session.handHistories || []).find(item => item.handNumber === session.currentHandNumber);
+        if (history && history.completed) {
+            renderResolvedSeatLayer(history);
+            boardArea.innerHTML = renderBoard(history.board);
+            heroHandArea.innerHTML = renderHeroHand(history.heroHand);
+            if (history.outcomeLabel && !String(history.outcomeLabel).includes("弃牌")) {
+                showGtoShowdown(history.opponentHand, history.heroPosition, history.gtoOpponentPosition);
+            } else {
+                hideGtoShowdown();
+            }
+        } else {
+            seatLayer.innerHTML = "";
+        }
+        historyLines.innerHTML = `<div>第 ${session.currentHandNumber} 手牌已完成${history?.outcomeLabel ? ` · ${escapeHtml(history.outcomeLabel)}` : ""}。点击下方按钮进入下一手。</div>`;
+        spotCopy.textContent = `本手已经结算。${history?.outcomeLabel || "结果待更新"}。当前累计行动数 ${session.stats.actionsTaken}，原始得分 ${formatScore(session.stats.rawGtoScore)} / ${session.stats.maxGtoScore}，GTO 分数 ${session.stats.gtoScorePercent}%。`;
         actionBar.innerHTML = `<button class="next-hand-btn" id="nextHandButton">下一手牌</button>`;
         document.getElementById("nextHandButton").addEventListener("click", nextHand);
         renderOperationHistory(session, session.currentHandNumber);
@@ -1627,6 +1777,7 @@
     }
 
     function renderSpot(spot) {
+        hideGtoShowdown();
         const seatLayout = buildSeatLayout(spot.heroPosition);
         seatLayer.innerHTML = spot.seats.map(seat => renderSeat(seat, seatLayout)).join("");
         boardArea.innerHTML = renderBoard(spot.board);
@@ -1648,6 +1799,97 @@
             button.addEventListener("click", () => submitAction(button.dataset.action));
         });
         renderOperationHistory(activeSession, spot.handNumber || activeSession.currentHandNumber);
+    }
+
+    function showGtoShowdown(opponentHand, heroPosition, gtoPosition) {
+        const cards = splitHeroHand(opponentHand);
+        if (cards.length !== 2) {
+            hideGtoShowdown();
+            return;
+        }
+        gtoHandArea.innerHTML = cards.map(renderCard).join("");
+        gtoHandArea.classList.add("show");
+        requestAnimationFrame(() => positionGtoShowdown(heroPosition, gtoPosition));
+    }
+
+    function hideGtoShowdown() {
+        gtoHandArea.classList.remove("show");
+        gtoHandArea.innerHTML = "";
+        gtoHandArea.style.left = "50%";
+        gtoHandArea.style.top = "60%";
+    }
+
+    function renderResolvedSeatLayer(history) {
+        const seatLayout = buildSeatLayout(history.heroPosition);
+        const resolvedSeats = seatOptions.map(position => ({
+            position,
+            hero: position === String(history.heroPosition || "").toUpperCase(),
+            gtoOpponent: position === String(history.gtoOpponentPosition || "").toUpperCase(),
+            activeOpponent: position === String(history.gtoOpponentPosition || "").toUpperCase(),
+            dealer: position === "BTN",
+            dimmed: position !== String(history.heroPosition || "").toUpperCase()
+                && position !== String(history.gtoOpponentPosition || "").toUpperCase(),
+            badge: position === String(history.heroPosition || "").toUpperCase()
+                ? "HERO"
+                : position === String(history.gtoOpponentPosition || "").toUpperCase()
+                    ? "GTO"
+                    : "",
+            stack: 0,
+            currentBet: 0
+        }));
+        seatLayer.innerHTML = resolvedSeats.map(seat => renderSeat(seat, seatLayout)).join("");
+    }
+
+    function positionGtoShowdown(heroPosition, gtoPosition) {
+        const seatLayout = buildSeatLayout(heroPosition);
+        const point = seatLayout[String(gtoPosition || "").toUpperCase()];
+        if (!point || !tableWrap) {
+            gtoHandArea.style.left = "50%";
+            gtoHandArea.style.top = "60%";
+            return;
+        }
+        const wrapWidth = tableWrap.clientWidth || 0;
+        const wrapHeight = tableWrap.clientHeight || 0;
+        const xPercent = Number.parseFloat(String(point.left).replace("%", ""));
+        const yPercent = Number.parseFloat(String(point.top).replace("%", ""));
+        const seatX = wrapWidth * xPercent / 100;
+        const seatY = wrapHeight * yPercent / 100;
+        const handWidth = gtoHandArea.offsetWidth || 118;
+        const handHeight = gtoHandArea.offsetHeight || 66;
+        const margin = 14;
+        const halfWidth = handWidth / 2;
+        const halfHeight = handHeight / 2;
+
+        let targetX = seatX;
+        let targetY = seatY;
+
+        if (seatY <= wrapHeight * 0.28) {
+            targetY = seatY - 44;
+        } else if (seatY >= wrapHeight * 0.64) {
+            if (seatX <= wrapWidth * 0.38) {
+                targetX = seatX - 72;
+                targetY = seatY + 8;
+            } else if (seatX >= wrapWidth * 0.62) {
+                targetX = seatX + 72;
+                targetY = seatY + 8;
+            } else {
+                targetY = seatY + 56;
+            }
+        } else if (seatX <= wrapWidth * 0.28) {
+            targetX = seatX;
+            targetY = seatY + 56;
+        } else if (seatX >= wrapWidth * 0.72) {
+            targetX = seatX;
+            targetY = seatY + 56;
+        } else {
+            targetY = seatY + 56;
+        }
+
+        targetX = Math.max(halfWidth + margin, Math.min(wrapWidth - halfWidth - margin, targetX));
+        targetY = Math.max(halfHeight + margin, Math.min(wrapHeight - halfHeight - margin, targetY));
+
+        gtoHandArea.style.left = `${targetX}px`;
+        gtoHandArea.style.top = `${targetY}px`;
     }
 
     async function submitAction(actionCode) {
@@ -1709,7 +1951,7 @@
             <button class="history-card ${history.handNumber === selectedHistoryHand ? "active" : ""}" data-hand="${history.handNumber}">
                 第 ${history.handNumber} 手牌 · ${escapeHtml(history.scenarioType)} · ${formatScore(history.handScore)}%
                 <span>Hero ${escapeHtml(history.heroPosition)} vs GTO ${escapeHtml(history.gtoOpponentPosition)} · ${formatCardSequence(splitHeroHand(history.heroHand))}</span>
-                <span>${escapeHtml(history.behaviorAnalysis)}</span>
+                <span>${escapeHtml(history.outcomeLabel || "未结束")} · ${escapeHtml(history.behaviorAnalysis)}</span>
             </button>
         `).join("");
         sessionHistoryList.querySelectorAll("button[data-hand]").forEach(button => {
@@ -1728,41 +1970,65 @@
             handSummaryDetail.innerHTML = "暂无手牌摘要。";
             handSummaryScore.textContent = "0%";
             operationList.innerHTML = `
-                <div class="operation-row">
-                    <div class="operation-detail">本手暂时还没有行动记录。</div>
+                <div class="oplog-item">
+                    <div class="oplog-step">--</div>
+                    <div class="oplog-body">
+                        <div class="oplog-text">本手暂时还没有行动记录。</div>
+                    </div>
                 </div>
             `;
             return;
         }
         handSummaryPanel.classList.remove("hidden");
+        const showOpponentCards = history.completed && !String(history.outcomeLabel || "").includes("弃牌");
+        const opponentCards = showOpponentCards
+            ? formatCardSequence(splitHeroHand(history.opponentHand))
+            : "未亮牌";
         handSummaryDetail.innerHTML = `
             第 ${history.handNumber} 手 · ${escapeHtml(history.scenarioType)} · Hero ${escapeHtml(history.heroPosition)} vs GTO ${escapeHtml(history.gtoOpponentPosition)}<br>
-            Hero 手牌：${formatCardSequence(splitHeroHand(history.heroHand))} · 公共牌：${formatCardSequence(history.board)}
-            <div class="operation-analysis">${escapeHtml(history.summary)}。${escapeHtml(history.behaviorAnalysis)}</div>
+            Hero 手牌：${formatCardSequence(splitHeroHand(history.heroHand))} · GTO 手牌：${opponentCards} · 公共牌：${formatCardSequence(history.board)}
+            <div class="oplog-note">${escapeHtml(history.outcomeLabel || "未结束")} · ${escapeHtml(history.summary)}。${escapeHtml(history.behaviorAnalysis)}</div>
         `;
         handSummaryScore.textContent = `${formatScore(history.handScore)}%`;
         const operationRows = history.operations && history.operations.length > 0
             ? history.operations.map(renderOperation).join("")
-            : `<div class="operation-row"><div class="operation-detail">本手暂时还没有行动记录。</div></div>`;
+            : `<div class="oplog-item"><div class="oplog-step">--</div><div class="oplog-body"><div class="oplog-text">本手暂时还没有行动记录。</div></div></div>`;
         operationList.innerHTML = operationRows;
     }
 
     function renderOperation(operation) {
-        const actorClass = String(operation.actor || "").toLowerCase();
+        const actorClass = oplogActorClass(operation.actor);
         const scoreText = operation.scoreCategory
             ? `${escapeHtml(operation.scoreCategory)} ${operation.deltaScore}分`
             : operation.automatic ? "系统" : "";
         return `
-            <div class="operation-row ${actorClass}">
-                <div class="operation-stage">${escapeHtml(operation.stage)}</div>
-                <div class="operation-actor">${escapeHtml(operation.actor)}${operation.position ? " · " + escapeHtml(operation.position) : ""}</div>
-                <div class="operation-detail">
-                    ${formatHistoryLine(operation.detail || operation.action)}
-                    ${operation.bestAction ? `<div class="operation-analysis">推荐：${escapeHtml(operation.bestAction)}。${escapeHtml(operation.analysis || "")}</div>` : ""}
+            <div class="oplog-item ${actorClass}">
+                <div class="oplog-step">${escapeHtml(operation.sequence || "")}</div>
+                <div class="oplog-body">
+                    <div class="oplog-meta">
+                        <span class="oplog-street">${escapeHtml(operation.stage)}</span>
+                        <span class="oplog-actor">${escapeHtml(operation.actor)}${operation.position ? " · " + escapeHtml(operation.position) : ""}</span>
+                        ${scoreText ? `<span class="oplog-score">${scoreText}</span>` : ""}
+                    </div>
+                    <div class="oplog-text">${formatHistoryLine(operation.detail || operation.action)}</div>
+                    ${operation.bestAction ? `<div class="oplog-note">推荐：${escapeHtml(operation.bestAction)}。${escapeHtml(operation.analysis || "")}</div>` : ""}
                 </div>
-                <div class="operation-score">${scoreText}</div>
             </div>
         `;
+    }
+
+    function oplogActorClass(actor) {
+        const normalized = String(actor || "").toUpperCase();
+        if (normalized === "HERO") {
+            return "oplog-actor-hero";
+        }
+        if (normalized === "GTO") {
+            return "oplog-actor-gto";
+        }
+        if (normalized === "BOARD") {
+            return "oplog-actor-board";
+        }
+        return "oplog-actor-system";
     }
 
     function renderFeedback(feedback) {
@@ -2024,17 +2290,23 @@
     }
 
     function animateHeroBet(label) {
-        const table = document.querySelector(".table-wrap");
         const chip = document.createElement("div");
         chip.className = "bet-fly";
         chip.textContent = label;
-        table.appendChild(chip);
+        tableWrap.appendChild(chip);
         window.setTimeout(() => chip.remove(), 950);
     }
 
     function shortSessionId(sessionId) {
         const text = String(sessionId || "");
         return text.length > 12 ? `${text.slice(0, 8)}...` : text;
+    }
+
+    function openResultPage(sessionId) {
+        if (!sessionId) {
+            return;
+        }
+        window.location.href = `/trainer/result?sessionId=${encodeURIComponent(sessionId)}`;
     }
 
     function formatDateTime(value) {

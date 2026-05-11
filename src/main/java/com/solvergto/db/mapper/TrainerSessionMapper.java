@@ -76,4 +76,32 @@ public interface TrainerSessionMapper {
             @Arg(column = "updated_at", javaType = java.time.LocalDateTime.class)
     })
     List<TrainerSessionRecord> listByPlayerAndMode(@Param("playerId") long playerId, @Param("mode") String mode, @Param("limit") int limit);
+
+    @Select("""
+            SELECT id, session_id, player_id, mode, status, total_hands, hands_played, actions_taken,
+                   raw_gto_score, max_gto_score, gto_score_percent, CAST(config_json AS CHAR) AS config_json,
+                   started_at, finished_at, updated_at
+            FROM trainer_session
+            WHERE player_id = #{playerId}
+              AND session_id = #{sessionId}
+            LIMIT 1
+            """)
+    @ConstructorArgs({
+            @Arg(column = "id", javaType = long.class),
+            @Arg(column = "session_id", javaType = String.class),
+            @Arg(column = "player_id", javaType = long.class),
+            @Arg(column = "mode", javaType = String.class),
+            @Arg(column = "status", javaType = String.class),
+            @Arg(column = "total_hands", javaType = int.class),
+            @Arg(column = "hands_played", javaType = int.class),
+            @Arg(column = "actions_taken", javaType = int.class),
+            @Arg(column = "raw_gto_score", javaType = double.class),
+            @Arg(column = "max_gto_score", javaType = int.class),
+            @Arg(column = "gto_score_percent", javaType = int.class),
+            @Arg(column = "config_json", javaType = String.class),
+            @Arg(column = "started_at", javaType = java.time.LocalDateTime.class),
+            @Arg(column = "finished_at", javaType = java.time.LocalDateTime.class),
+            @Arg(column = "updated_at", javaType = java.time.LocalDateTime.class)
+    })
+    TrainerSessionRecord getByPlayerAndSessionId(@Param("playerId") long playerId, @Param("sessionId") String sessionId);
 }

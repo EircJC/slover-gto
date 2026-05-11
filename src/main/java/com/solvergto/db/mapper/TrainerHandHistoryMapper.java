@@ -15,19 +15,21 @@ public interface TrainerHandHistoryMapper {
     @Insert("""
             INSERT INTO trainer_hand_history (
                 session_id, player_id, mode, hand_number, completed, hero_position, gto_opponent_position,
-                hero_hand, board_cards, scenario_type, hand_score, summary, behavior_analysis
+                hero_hand, opponent_hand, board_cards, scenario_type, hand_score, outcome_label, summary, behavior_analysis
             ) VALUES (
                 #{sessionId}, #{playerId}, #{mode}, #{handNumber}, #{completed}, #{heroPosition}, #{gtoOpponentPosition},
-                #{heroHand}, #{boardCards}, #{scenarioType}, #{handScore}, #{summary}, #{behaviorAnalysis}
+                #{heroHand}, #{opponentHand}, #{boardCards}, #{scenarioType}, #{handScore}, #{outcomeLabel}, #{summary}, #{behaviorAnalysis}
             )
             ON DUPLICATE KEY UPDATE
                 completed = VALUES(completed),
                 hero_position = VALUES(hero_position),
                 gto_opponent_position = VALUES(gto_opponent_position),
                 hero_hand = VALUES(hero_hand),
+                opponent_hand = VALUES(opponent_hand),
                 board_cards = VALUES(board_cards),
                 scenario_type = VALUES(scenario_type),
                 hand_score = VALUES(hand_score),
+                outcome_label = VALUES(outcome_label),
                 summary = VALUES(summary),
                 behavior_analysis = VALUES(behavior_analysis)
             """)
@@ -35,7 +37,7 @@ public interface TrainerHandHistoryMapper {
 
     @Select("""
             SELECT id, session_id, player_id, mode, hand_number, completed, hero_position, gto_opponent_position,
-                   hero_hand, board_cards, scenario_type, hand_score, summary, behavior_analysis
+                   hero_hand, opponent_hand, board_cards, scenario_type, hand_score, outcome_label, summary, behavior_analysis
             FROM trainer_hand_history
             WHERE session_id = #{sessionId}
               AND player_id = #{playerId}
@@ -51,9 +53,11 @@ public interface TrainerHandHistoryMapper {
             @Arg(column = "hero_position", javaType = String.class),
             @Arg(column = "gto_opponent_position", javaType = String.class),
             @Arg(column = "hero_hand", javaType = String.class),
+            @Arg(column = "opponent_hand", javaType = String.class),
             @Arg(column = "board_cards", javaType = String.class),
             @Arg(column = "scenario_type", javaType = String.class),
             @Arg(column = "hand_score", javaType = double.class),
+            @Arg(column = "outcome_label", javaType = String.class),
             @Arg(column = "summary", javaType = String.class),
             @Arg(column = "behavior_analysis", javaType = String.class)
     })

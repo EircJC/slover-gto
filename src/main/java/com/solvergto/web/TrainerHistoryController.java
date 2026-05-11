@@ -38,6 +38,15 @@ public class TrainerHistoryController {
         return trainerSessionService.listSessions(AuthSession.requirePlayerId(session), AuthSession.mode(session), limit);
     }
 
+    @GetMapping("/session/{sessionId}")
+    public TrainerSessionRecord session(@PathVariable String sessionId, HttpSession session) {
+        TrainerSessionRecord record = trainerSessionService.getSession(AuthSession.requirePlayerId(session), sessionId);
+        if (record == null) {
+            throw new IllegalArgumentException("Trainer session not found");
+        }
+        return record;
+    }
+
     @GetMapping("/session/{sessionId}/hands")
     public List<TrainerHandHistoryRecord> hands(@PathVariable String sessionId, HttpSession session) {
         return trainerHandHistoryService.listBySession(AuthSession.requirePlayerId(session), sessionId);

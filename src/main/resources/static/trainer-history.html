@@ -168,6 +168,13 @@
             margin-bottom: 16px;
         }
 
+        .detail-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
         .metric {
             padding: 13px;
             border-radius: 16px;
@@ -279,6 +286,7 @@
                 <span id="detailTitle">请选择一个 session</span>
             </div>
             <div class="summary-grid" id="summaryGrid"></div>
+            <div class="detail-actions" id="detailActions"></div>
             <div class="hand-list" id="handList"></div>
         </main>
     </div>
@@ -294,6 +302,7 @@
     const sessionList = document.getElementById("sessionList");
     const detailTitle = document.getElementById("detailTitle");
     const summaryGrid = document.getElementById("summaryGrid");
+    const detailActions = document.getElementById("detailActions");
     const handList = document.getElementById("handList");
 
     document.getElementById("refreshButton").addEventListener("click", () => loadSessions(selectedSessionId));
@@ -374,6 +383,7 @@
     function renderSummary(session) {
         if (!session) {
             summaryGrid.innerHTML = "";
+            detailActions.innerHTML = "";
             return;
         }
         summaryGrid.innerHTML = `
@@ -381,6 +391,9 @@
             <div class="metric"><small>手牌</small><strong>${session.handsPlayed}/${session.totalHands}</strong></div>
             <div class="metric"><small>行动</small><strong>${session.actionsTaken}</strong></div>
             <div class="metric"><small>原始分</small><strong>${formatScore(session.rawGtoScore)}/${session.maxGtoScore}</strong></div>
+        `;
+        detailActions.innerHTML = `
+            <a class="nav-link primary" href="/trainer/result?sessionId=${encodeURIComponent(session.sessionId)}">查看训练结果</a>
         `;
     }
 
@@ -391,10 +404,12 @@
         }
         handList.innerHTML = hands.map(hand => {
             const handOperations = operations.filter(operation => operation.handNumber === hand.handNumber);
+            const showOpponentCards = hand.completed && !String(hand.outcomeLabel || "").includes("弃牌");
             return `
                 <article class="hand-card">
                     <b>第 ${hand.handNumber} 手 · ${escapeHtml(hand.scenarioType)} · ${formatScore(hand.handScore)}%</b>
-                    <span>Hero ${escapeHtml(hand.heroPosition)} vs GTO ${escapeHtml(hand.gtoOpponentPosition)} · ${formatCardSequence(splitHeroHand(hand.heroHand))} · Board ${formatCardSequence(splitBoardCards(hand.boardCards))}</span>
+                    <span>Hero ${escapeHtml(hand.heroPosition)} vs GTO ${escapeHtml(hand.gtoOpponentPosition)} · Hero ${formatCardSequence(splitHeroHand(hand.heroHand))} · GTO ${showOpponentCards ? formatCardSequence(splitHeroHand(hand.opponentHand)) : "未亮牌"} · Board ${formatCardSequence(splitBoardCards(hand.boardCards))}</span>
+                    <span>${escapeHtml(hand.outcomeLabel || "未结束")}</span>
                     <span>${escapeHtml(hand.behaviorAnalysis || hand.summary || "暂无分析")}</span>
                     <div class="operation-list">${handOperations.map(renderOperation).join("") || `<div class="operation-row"><span>暂无行动记录</span></div>`}</div>
                 </article>
@@ -417,6 +432,7 @@
     function renderEmptyDetail() {
         detailTitle.textContent = "暂无 session";
         summaryGrid.innerHTML = "";
+        detailActions.innerHTML = "";
         handList.innerHTML = `<div class="empty">暂无训练历史。</div>`;
     }
 

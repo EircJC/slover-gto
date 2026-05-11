@@ -9,9 +9,11 @@ public record TrainerHandHistoryUpsertCommand(
         String heroPosition,
         String gtoOpponentPosition,
         String heroHand,
+        String opponentHand,
         String boardCards,
         String scenarioType,
         double handScore,
+        String outcomeLabel,
         String summary,
         String behaviorAnalysis
 ) {

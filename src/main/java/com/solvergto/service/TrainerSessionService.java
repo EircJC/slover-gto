@@ -33,6 +33,10 @@ public class TrainerSessionService {
         return trainerSessionMapper.listByPlayerAndMode(playerId, mode, Math.max(1, Math.min(limit, 100)));
     }
 
+    public TrainerSessionRecord getSession(long playerId, String sessionId) {
+        return trainerSessionMapper.getByPlayerAndSessionId(playerId, sessionId);
+    }
+
     private TrainerSessionUpsertCommand toCommand(long playerId, String mode, SessionView session, String configJson) {
         String status = session.completed() ? "COMPLETED" : session.awaitingNextHand() ? "HAND_DONE" : "RUNNING";
         return new TrainerSessionUpsertCommand(

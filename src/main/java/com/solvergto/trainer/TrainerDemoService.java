@@ -106,9 +106,21 @@ public class TrainerDemoService {
         ScoreBand band = classify(profile, spot.bestProfile());
         FeedbackView feedback = buildFeedback(spot, profile, band);
         state.recordHeroOperation(spot, profile, band, feedback);
-        state.stats().apply(band, spot.stage() == Stage.RIVER);
-        state.advance();
-        if (spot.stage() == Stage.RIVER && !state.completed()) {
+        boolean handCompleted = shouldCompleteHand(spot, profile);
+        state.stats().apply(band, handCompleted);
+        if (isAllInAction(profile)) {
+            state.completeHandByAllIn(spot);
+            state.advancePastHand(spot.handNumber());
+        } else if (isFoldAction(profile)) {
+            state.completeHandByFold(spot);
+            state.advancePastHand(spot.handNumber());
+        } else if (spot.stage() == Stage.RIVER) {
+            state.completeHandByShowdown(spot);
+            state.advancePastHand(spot.handNumber());
+        } else {
+            state.advance();
+        }
+        if (handCompleted && !state.completed()) {
             state.pauseForNextHand();
         }
         SessionView session = toSessionView(state);
@@ -206,6 +218,7 @@ public class TrainerDemoService {
                     focusOpponent,
                     activeOpponents,
                     cards.heroHand(),
+                    cards.opponentHand(),
                     board,
                     economy.potSize(),
                     economy.effectiveStack(),
@@ -381,7 +394,7 @@ public class TrainerDemoService {
         List<String> board = new ArrayList<>();
 
         if (stage == Stage.PREFLOP) {
-            return new CardBundle(heroHand, board);
+            return new CardBundle(heroHand, generateOpponentHand(heroHand, board, random), board);
         }
 
         List<String> boardPool = switch (drawType) {
@@ -405,14 +418,29 @@ public class TrainerDemoService {
                 board = splitBoard(RIVER_DYNAMIC_BOARDS.get(random.nextInt(RIVER_DYNAMIC_BOARDS.size())));
             }
             if (!conflicts(heroHand, board)) {
-                return new CardBundle(heroHand, board);
+                return new CardBundle(heroHand, generateOpponentHand(heroHand, board, random), board);
             }
         }
 
         List<String> fallbackBoards = stage == Stage.RIVER ? splitBoard(DRY_RIVER_BOARDS.get(random.nextInt(DRY_RIVER_BOARDS.size())))
                 : stage == Stage.TURN ? splitBoard(TURN_BOARDS.get(random.nextInt(TURN_BOARDS.size())))
                 : splitBoard(FLUSH_DRAW_FLOPS.get(random.nextInt(FLUSH_DRAW_FLOPS.size())));
-        return new CardBundle(heroHand, fallbackBoards);
+        return new CardBundle(heroHand, generateOpponentHand(heroHand, fallbackBoards, random), fallbackBoards);
+    }
+
+    private Combo generateOpponentHand(Combo heroHand, List<String> board, Random random) {
+        List<Card> deck = new ArrayList<>();
+        for (int rank = 2; rank <= 14; rank++) {
+            for (char suit : new char[]{'s', 'h', 'd', 'c'}) {
+                Card card = new Card(rank, suit);
+                if (!card.equals(heroHand.first()) && !card.equals(heroHand.second())
+                        && board.stream().map(Card::parse).noneMatch(card::equals)) {
+                    deck.add(card);
+                }
+            }
+        }
+        Collections.shuffle(deck, random);
+        return new Combo(deck.get(0), deck.get(1));
     }
 
     private SpotEconomy economyFor(Stage stage, ScenarioType scenario, DecisionMode mode, TrainingConfig config, Random random) {
@@ -458,14 +486,14 @@ public class TrainerDemoService {
         if (stage == Stage.PREFLOP && mode == DecisionMode.OPEN) {
             if (scenario == ScenarioType.FACING_LIMP) {
                 options.add(new ActionOptionView("CHECK", "Check Behind", "neutral"));
-                options.add(new ActionOptionView("ISO_4", "Bet " + amountLabel(4.0 * bigBlind), "aggressive"));
-                options.add(new ActionOptionView("ISO_5_5", "Bet " + amountLabel(5.5 * bigBlind), "aggressive"));
-                options.add(new ActionOptionView("ISO_7", "Bet " + amountLabel(7.0 * bigBlind), "pressure"));
+                options.add(new ActionOptionView("ISO_4", actionLabel("Bet", 4.0 * bigBlind, economy.effectiveStack()), "aggressive"));
+                options.add(new ActionOptionView("ISO_5_5", actionLabel("Bet", 5.5 * bigBlind, economy.effectiveStack()), "aggressive"));
+                options.add(new ActionOptionView("ISO_7", actionLabel("Bet", 7.0 * bigBlind, economy.effectiveStack()), "pressure"));
             } else {
                 options.add(new ActionOptionView("FOLD", "Fold", "danger"));
-                options.add(new ActionOptionView("OPEN_2_2", "Raise " + amountLabel(2.2 * bigBlind), "aggressive"));
-                options.add(new ActionOptionView("OPEN_2_5", "Raise " + amountLabel(2.5 * bigBlind), "aggressive"));
-                options.add(new ActionOptionView("OPEN_3", "Raise " + amountLabel(3.0 * bigBlind), "pressure"));
+                options.add(new ActionOptionView("OPEN_2_2", actionLabel("Raise", 2.2 * bigBlind, economy.effectiveStack()), "aggressive"));
+                options.add(new ActionOptionView("OPEN_2_5", actionLabel("Raise", 2.5 * bigBlind, economy.effectiveStack()), "aggressive"));
+                options.add(new ActionOptionView("OPEN_3", actionLabel("Raise", 3.0 * bigBlind, economy.effectiveStack()), "pressure"));
             }
             return new ActionSet(options, mode);
         }
@@ -477,11 +505,11 @@ public class TrainerDemoService {
                 return new ActionSet(options, mode);
             }
             String aggressiveLabel = switch (scenario) {
-                case FACING_4BET -> "Raise " + amountLabel(48.0 * bigBlind);
-                case FACING_3BET -> "Raise " + amountLabel(22.0 * bigBlind);
-                case VS_SQUEEZE -> "Raise " + amountLabel(24.0 * bigBlind);
-                case FACING_ISOLATION -> "Raise " + amountLabel(14.0 * bigBlind);
-                default -> "Raise " + amountLabel(9.5 * bigBlind);
+                case FACING_4BET -> actionLabel("Raise", 48.0 * bigBlind, economy.effectiveStack());
+                case FACING_3BET -> actionLabel("Raise", 22.0 * bigBlind, economy.effectiveStack());
+                case VS_SQUEEZE -> actionLabel("Raise", 24.0 * bigBlind, economy.effectiveStack());
+                case FACING_ISOLATION -> actionLabel("Raise", 14.0 * bigBlind, economy.effectiveStack());
+                default -> actionLabel("Raise", 9.5 * bigBlind, economy.effectiveStack());
             };
             options.add(new ActionOptionView("AGG_SMALL", aggressiveLabel, "aggressive"));
             options.add(new ActionOptionView("ALLIN", "All-in " + amountLabel(economy.effectiveStack()), "pressure"));
@@ -490,15 +518,15 @@ public class TrainerDemoService {
 
         if (mode == DecisionMode.OPEN) {
             options.add(new ActionOptionView("CHECK", "Check", "neutral"));
-            options.add(new ActionOptionView("BET_33", "Bet " + amountLabel(economy.potSize() * (stage == Stage.RIVER ? 0.50 : 0.33)), "aggressive"));
-            options.add(new ActionOptionView("BET_75", "Bet " + amountLabel(economy.potSize() * (stage == Stage.RIVER ? 1.00 : 0.75)), "pressure"));
+            options.add(new ActionOptionView("BET_33", actionLabel("Bet", economy.potSize() * (stage == Stage.RIVER ? 0.50 : 0.33), economy.effectiveStack()), "aggressive"));
+            options.add(new ActionOptionView("BET_75", actionLabel("Bet", economy.potSize() * (stage == Stage.RIVER ? 1.00 : 0.75), economy.effectiveStack()), "pressure"));
             if (stage == Stage.RIVER || random.nextBoolean()) {
                 options.add(new ActionOptionView("ALLIN", "All-in " + amountLabel(economy.effectiveStack()), "danger"));
             }
         } else {
             options.add(new ActionOptionView("FOLD", "Fold", "danger"));
             options.add(new ActionOptionView("CALL", "Call", "neutral"));
-            options.add(new ActionOptionView("RAISE_SMALL", "Raise " + amountLabel(economy.facingSize() * (stage == Stage.RIVER ? 2.5 : 3.0)), "aggressive"));
+            options.add(new ActionOptionView("RAISE_SMALL", actionLabel("Raise", economy.facingSize() * (stage == Stage.RIVER ? 2.5 : 3.0), economy.effectiveStack()), "aggressive"));
             if (stage == Stage.TURN || stage == Stage.RIVER || random.nextBoolean()) {
                 options.add(new ActionOptionView("ALLIN", "All-in " + amountLabel(economy.effectiveStack()), "pressure"));
             }
@@ -768,6 +796,18 @@ public class TrainerDemoService {
             return ScoreBand.ERROR;
         }
         return ScoreBand.BLUNDER;
+    }
+
+    private boolean shouldCompleteHand(SpotState spot, ActionProfile profile) {
+        return spot.stage() == Stage.RIVER || isAllInAction(profile) || isFoldAction(profile);
+    }
+
+    private boolean isAllInAction(ActionProfile profile) {
+        return "ALLIN".equalsIgnoreCase(profile.option().code());
+    }
+
+    private boolean isFoldAction(ActionProfile profile) {
+        return "FOLD".equalsIgnoreCase(profile.option().code());
     }
 
     private FeedbackView buildFeedback(SpotState spot, ActionProfile chosen, ScoreBand band) {
@@ -1143,6 +1183,14 @@ public class TrainerDemoService {
         return rounded == Math.rint(rounded) ? String.valueOf((long) rounded) : String.valueOf(rounded);
     }
 
+    private String actionLabel(String verb, double requestedAmount, double effectiveStack) {
+        double cappedAmount = Math.min(Math.max(0.0, requestedAmount), effectiveStack);
+        if (cappedAmount >= effectiveStack) {
+            return "All-in " + amountLabel(effectiveStack);
+        }
+        return verb + " " + amountLabel(cappedAmount);
+    }
+
     private record BlindLevel(String label, double smallBlind, double bigBlind) {
         private static final BlindLevel DEFAULT = new BlindLevel("1/2", 1.0, 2.0);
     }
@@ -1164,7 +1212,7 @@ public class TrainerDemoService {
     ) {
     }
 
-    private record CardBundle(Combo heroHand, List<String> board) {
+    private record CardBundle(Combo heroHand, Combo opponentHand, List<String> board) {
     }
 
     private record SpotEconomy(double potSize, double effectiveStack, double facingSize) {
@@ -1269,7 +1317,7 @@ public class TrainerDemoService {
 
         List<HandHistoryView> handHistoryViews() {
             return handHistories.values().stream()
-                    .map(history -> history.toView(stats.handsPlayed()))
+                    .map(HandHistoryState::toView)
                     .toList();
         }
 
@@ -1291,6 +1339,12 @@ public class TrainerDemoService {
 
         void advance() {
             currentIndex = Math.min(currentIndex + 1, spots.size());
+        }
+
+        void advancePastHand(int handNumber) {
+            while (currentIndex < spots.size() && spots.get(currentIndex).handNumber() == handNumber) {
+                currentIndex++;
+            }
         }
 
         void pauseForNextHand() {
@@ -1315,6 +1369,27 @@ public class TrainerDemoService {
             }
         }
 
+        void completeHandByAllIn(SpotState spot) {
+            HandHistoryState history = handHistories.get(spot.handNumber());
+            if (history != null) {
+                history.completeByAllIn(spot);
+            }
+        }
+
+        void completeHandByFold(SpotState spot) {
+            HandHistoryState history = handHistories.get(spot.handNumber());
+            if (history != null) {
+                history.completeByFold(spot);
+            }
+        }
+
+        void completeHandByShowdown(SpotState spot) {
+            HandHistoryState history = handHistories.get(spot.handNumber());
+            if (history != null) {
+                history.completeByShowdown(spot);
+            }
+        }
+
         private static Map<Integer, HandHistoryState> buildHandHistories(List<SpotState> spots) {
             Map<Integer, HandHistoryState> histories = new LinkedHashMap<>();
             for (SpotState spot : spots) {
@@ -1330,29 +1405,36 @@ public class TrainerDemoService {
         private final String heroPosition;
         private final String gtoOpponentPosition;
         private final String heroHand;
+        private final String opponentHand;
         private final String scenarioType;
+        private List<String> finalBoard = List.of();
+        private List<String> revealedBoard = List.of();
         private final List<OperationState> operations = new ArrayList<>();
         private final Set<String> recordedAutoLines = new LinkedHashSet<>();
-        private List<String> board = List.of();
+        private final Set<String> recordedBoardStages = new LinkedHashSet<>();
         private int actionScore;
         private int heroDecisionCount;
         private int nextSequence = 1;
+        private boolean completed;
+        private String outcomeLabel = "未结束";
 
         private HandHistoryState(SpotState spot) {
             this.handNumber = spot.handNumber();
             this.heroPosition = spot.heroPosition().name();
             this.gtoOpponentPosition = spot.focusOpponentPosition().name();
             this.heroHand = spot.heroHand().text();
+            this.opponentHand = spot.opponentHand().text();
             this.scenarioType = labelScenarioForHistory(spot.scenario());
         }
 
         void mergeSpot(SpotState spot) {
-            if (spot.board().size() > board.size()) {
-                board = List.copyOf(spot.board());
+            if (spot.board().size() > finalBoard.size()) {
+                finalBoard = List.copyOf(spot.board());
             }
         }
 
         void recordAutomaticOperations(SpotState spot) {
+            revealBoard(spot.board());
             for (String line : spot.actionHistory()) {
                 if (!isRecordableLine(line)) {
                     continue;
@@ -1361,11 +1443,13 @@ public class TrainerDemoService {
                 if (!recordedAutoLines.add(key)) {
                     continue;
                 }
+                rememberBoardStage(line);
                 operations.add(OperationState.automatic(nextSequence++, spot.stage(), actorFor(line, spot), positionFor(line, spot), actionFor(line), line));
             }
         }
 
         void recordHeroOperation(SpotState spot, ActionProfile profile, ScoreBand band, FeedbackView feedback) {
+            revealBoard(spot.board());
             actionScore += band.points();
             heroDecisionCount++;
             String detail = spot.heroPosition() + " chooses " + profile.option().label();
@@ -1382,8 +1466,58 @@ public class TrainerDemoService {
             ));
         }
 
-        HandHistoryView toView(int handsPlayed) {
-            boolean completed = handNumber <= handsPlayed;
+        void completeByAllIn(SpotState spot) {
+            if (completed) {
+                return;
+            }
+            recordAutomaticOpponentCall(spot);
+            revealBoard(finalBoard);
+            recordBoardRunout();
+            ShowdownResult showdown = showdownResult(spot);
+            completed = true;
+            outcomeLabel = showdown.label();
+            operations.add(OperationState.system(
+                    nextSequence++,
+                    labelStageForHistory(spot.stage()),
+                    showdown.action(),
+                    showdown.detail()
+            ));
+        }
+
+        void completeByFold(SpotState spot) {
+            if (completed) {
+                return;
+            }
+            revealBoard(spot.board());
+            finalBoard = List.copyOf(revealedBoard);
+            completed = true;
+            outcomeLabel = "Hero 弃牌，本手告负";
+            operations.add(OperationState.system(
+                    nextSequence++,
+                    labelStageForHistory(spot.stage()),
+                    "弃牌结束",
+                    "Hero 弃牌，GTO 赢下当前底池。"
+            ));
+        }
+
+        void completeByShowdown(SpotState spot) {
+            if (completed) {
+                return;
+            }
+            revealBoard(finalBoard.isEmpty() ? spot.board() : finalBoard);
+            recordBoardRunout();
+            ShowdownResult showdown = showdownResult(spot);
+            completed = true;
+            outcomeLabel = showdown.label();
+            operations.add(OperationState.system(
+                    nextSequence++,
+                    labelStageForHistory(spot.stage()),
+                    showdown.action(),
+                    showdown.detail()
+            ));
+        }
+
+        HandHistoryView toView() {
             int maxScore = Math.max(0, heroDecisionCount * 4);
             double handScore = maxScore == 0 ? 0.0 : Math.round((actionScore * 100.0) / maxScore);
             return new HandHistoryView(
@@ -1392,9 +1526,11 @@ public class TrainerDemoService {
                     heroPosition,
                     gtoOpponentPosition,
                     heroHand,
-                    board,
+                    opponentHand,
+                    completed ? finalBoard : revealedBoard,
                     scenarioType,
                     handScore,
+                    outcomeLabel,
                     completed ? "已完成 · 本手得分 " + formatPercent(handScore) : "进行中 · 当前得分 " + formatPercent(handScore),
                     behaviorAnalysis(),
                     operations.stream().map(OperationState::toView).toList()
@@ -1417,6 +1553,84 @@ public class TrainerDemoService {
                 return "本手有 " + best + " 次最佳行动，整体策略贴近当前模拟GTO主线。";
             }
             return "本手没有明显巨大错误，但存在低频或混合动作，适合关注每条街的推荐主动作。";
+        }
+
+        private void revealBoard(List<String> board) {
+            if (board != null && board.size() > revealedBoard.size()) {
+                revealedBoard = List.copyOf(board);
+            }
+        }
+
+        private void recordAutomaticOpponentCall(SpotState spot) {
+            String detail = spot.focusOpponentPosition().name() + " 跟注 Hero 的 all-in";
+            operations.add(OperationState.automatic(
+                    nextSequence++,
+                    spot.stage(),
+                    "GTO",
+                    spot.focusOpponentPosition().name(),
+                    "跟注 all-in",
+                    detail
+            ));
+        }
+
+        private void recordBoardRunout() {
+            if (finalBoard.size() >= 3) {
+                recordBoardStage("FLOP", "Flop " + String.join(" ", finalBoard.subList(0, 3)));
+            }
+            if (finalBoard.size() >= 4) {
+                recordBoardStage("TURN", "Turn " + finalBoard.get(3));
+            }
+            if (finalBoard.size() >= 5) {
+                recordBoardStage("RIVER", "River " + finalBoard.get(4));
+            }
+        }
+
+        private void recordBoardStage(String stageKey, String detail) {
+            if (!recordedBoardStages.add(stageKey)) {
+                return;
+            }
+            Stage stage = switch (stageKey) {
+                case "FLOP" -> Stage.FLOP;
+                case "TURN" -> Stage.TURN;
+                case "RIVER" -> Stage.RIVER;
+                default -> Stage.RANDOM;
+            };
+            operations.add(OperationState.automatic(
+                    nextSequence++,
+                    stage,
+                    "BOARD",
+                    "",
+                    actionFor(detail),
+                    detail
+            ));
+        }
+
+        private void rememberBoardStage(String line) {
+            if (line.startsWith("Flop")) {
+                recordedBoardStages.add("FLOP");
+            } else if (line.startsWith("Turn")) {
+                recordedBoardStages.add("TURN");
+            } else if (line.startsWith("River")) {
+                recordedBoardStages.add("RIVER");
+            }
+        }
+
+        private ShowdownResult showdownResult(SpotState spot) {
+            if (finalBoard.size() < 5) {
+                return new ShowdownResult("摊牌条件不足", "牌面未完整发完，结果未能计算。");
+            }
+            Card[] boardCards = finalBoard.stream().map(Card::parse).toArray(Card[]::new);
+            int compare = com.solvergto.poker.HandEvaluator.compare(
+                    Combo.parse(heroHand).toSeven(boardCards),
+                    Combo.parse(opponentHand).toSeven(boardCards)
+            );
+            if (compare > 0) {
+                return new ShowdownResult("Hero 赢下摊牌", "双方摊牌，Hero 取得胜利。");
+            }
+            if (compare < 0) {
+                return new ShowdownResult("GTO 赢下摊牌", "双方摊牌，GTO 对手赢下本手。");
+            }
+            return new ShowdownResult("双方平分底池", "双方摊牌后牌力相同，本手平分底池。");
         }
 
         private static boolean isRecordableLine(String line) {
@@ -1491,8 +1705,18 @@ public class TrainerDemoService {
             return new OperationState(sequence, labelStageForHistory(stage), "HERO", position, action, detail, false, scoreCategory, deltaScore, bestAction, analysis);
         }
 
+        static OperationState system(int sequence, String stage, String action, String detail) {
+            return new OperationState(sequence, stage, "SYSTEM", "", action, detail, true, "", 0, "", "");
+        }
+
         OperationView toView() {
             return new OperationView(sequence, stage, actor, position, action, detail, automatic, scoreCategory, deltaScore, bestAction, analysis);
+        }
+    }
+
+    private record ShowdownResult(String label, String detail) {
+        String action() {
+            return label;
         }
     }
 
@@ -1506,6 +1730,7 @@ public class TrainerDemoService {
             SeatPosition focusOpponentPosition,
             List<SeatPosition> activeOpponents,
             Combo heroHand,
+            Combo opponentHand,
             List<String> board,
             double potSize,
             double effectiveStack,
