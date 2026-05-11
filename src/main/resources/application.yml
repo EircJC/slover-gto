@@ -1,0 +1,21 @@
+server:
+  port: 8080
+
+solvergto:
+  database:
+    host: ${SOLVER_GTO_DB_HOST:127.0.0.1}
+    port: ${SOLVER_GTO_DB_PORT:3306}
+    database-name: ${SOLVER_GTO_DB_NAME:solver-gto}
+    user: ${SOLVER_GTO_DB_USER:root}
+    password: ${SOLVER_GTO_DB_PASSWORD:jiang5368166}
+
+spring:
+  datasource:
+    hikari:
+      initialization-fail-timeout: 0
+      maximum-pool-size: 5
+      minimum-idle: 0
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true

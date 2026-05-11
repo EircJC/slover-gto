@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solver GTO Playground</title>
+    <style>
+        :root {
+            --bg: #f4efe6;
+            --panel: rgba(255, 252, 245, 0.88);
+            --panel-strong: #fffaf0;
+            --ink: #1f1a17;
+            --muted: #6b6259;
+            --accent: #b64926;
+            --accent-soft: #f3c9a7;
+            --line: rgba(69, 52, 37, 0.12);
+            --shadow: 0 20px 60px rgba(80, 48, 28, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Avenir Next", "PingFang SC", "Microsoft YaHei", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(236, 183, 124, 0.55), transparent 30%),
+                radial-gradient(circle at top right, rgba(160, 73, 49, 0.18), transparent 24%),
+                linear-gradient(180deg, #fbf5ec 0%, #efe5d5 100%);
+            min-height: 100vh;
+        }
+
+        .shell {
+            width: min(1180px, calc(100% - 32px));
+            margin: 32px auto 48px;
+        }
+
+        .hero {
+            padding: 28px 28px 22px;
+            border: 1px solid var(--line);
+            border-radius: 28px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.78), rgba(255,248,240,0.9));
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(12px);
+        }
+
+        .eyebrow {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(182, 73, 38, 0.1);
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 16px 0 10px;
+            font-size: clamp(32px, 5vw, 58px);
+            line-height: 0.98;
+            letter-spacing: -0.04em;
+        }
+
+        .hero p {
+            max-width: 760px;
+            margin: 0;
+            color: var(--muted);
+            font-size: 16px;
+            line-height: 1.7;
+        }
+
+        .hero-link {
+            display: inline-flex;
+            margin-top: 18px;
+            padding: 12px 16px;
+            border-radius: 999px;
+            background: rgba(182, 73, 38, 0.12);
+            border: 1px solid rgba(182, 73, 38, 0.18);
+            color: var(--ink);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 1.12fr 0.88fr;
+            gap: 22px;
+            margin-top: 22px;
+        }
+
+        .card {
+            border: 1px solid var(--line);
+            border-radius: 24px;
+            background: var(--panel);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+        }
+
+        .form-card {
+            padding: 24px;
+        }
+
+        .panel-title {
+            margin: 0 0 18px;
+            font-size: 22px;
+            letter-spacing: -0.03em;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .field.span-2 {
+            grid-column: span 2;
+        }
+
+        label {
+            font-size: 13px;
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            border: 1px solid rgba(78, 54, 36, 0.18);
+            border-radius: 16px;
+            padding: 12px 14px;
+            background: rgba(255,255,255,0.82);
+            color: var(--ink);
+            font: inherit;
+            transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+        }
+
+        textarea {
+            min-height: 84px;
+            resize: vertical;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: rgba(182, 73, 38, 0.55);
+            box-shadow: 0 0 0 4px rgba(182, 73, 38, 0.12);
+            transform: translateY(-1px);
+        }
+
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        button {
+            border: 0;
+            border-radius: 999px;
+            padding: 13px 22px;
+            background: linear-gradient(135deg, #be5830, #8f3113);
+            color: white;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 12px 24px rgba(143, 49, 19, 0.25);
+            transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 28px rgba(143, 49, 19, 0.28);
+        }
+
+        button:disabled {
+            opacity: 0.66;
+            cursor: wait;
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .result-card {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .pill {
+            padding: 11px 14px;
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.86), rgba(244, 231, 214, 0.95));
+            border: 1px solid rgba(92, 62, 41, 0.1);
+        }
+
+        .pill strong {
+            display: block;
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .pill span {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+        }
+
+        .metric-table {
+            width: 100%;
+            border-collapse: collapse;
+            overflow: hidden;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.8);
+        }
+
+        .metric-table th,
+        .metric-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(81, 61, 40, 0.08);
+            text-align: left;
+        }
+
+        .metric-table th {
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .metric-table tr:last-child td {
+            border-bottom: 0;
+        }
+
+        pre {
+            margin: 0;
+            padding: 18px;
+            border-radius: 18px;
+            background: #1e1a18;
+            color: #f9f0e6;
+            overflow: auto;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .status {
+            min-height: 24px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .status.error {
+            color: #9e2a1a;
+        }
+
+        @media (max-width: 980px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .shell {
+                width: min(100% - 20px, 100%);
+                margin-top: 20px;
+            }
+
+            .hero, .form-card, .result-card {
+                padding: 18px;
+                border-radius: 20px;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .field.span-2 {
+                grid-column: span 1;
+            }
+
+            .actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="shell">
+    <section class="hero">
+        <span class="eyebrow">Solver GTO Playground</span>
+        <h1>浏览器里直接喂参数，马上拿到策略频率和 EV。</h1>
+        <p>
+            这个页面支持两种调用方式：直接传范围，或者只传 <code>heroHand + action history</code> 让系统自动推断范围后再求解。
+            当前实现聚焦 <strong>NLHE / 2人 / River</strong> 场景。
+        </p>
+        <a class="hero-link" href="/trainer-demo">打开新的 6-Max Trainer Demo</a>
+    </section>
+
+    <div class="layout">
+        <section class="card form-card">
+            <h2 class="panel-title">输入参数</h2>
+            <form id="solve-form">
+                <div class="grid">
+                    <div class="field">
+                        <label for="solveMode">Mode</label>
+                        <select id="solveMode">
+                            <option value="ranges">Direct Ranges</option>
+                            <option value="history">Infer From History</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="gameType">Game Type</label>
+                        <select id="gameType">
+                            <option value="NLHE">NLHE</option>
+                            <option value="PLO">PLO</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="players">Players</label>
+                        <select id="players">
+                            <option value="2">2</option>
+                            <option value="6">6</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label for="street">Street</label>
+                        <select id="street">
+                            <option value="RIVER">RIVER</option>
+                            <option value="TURN">TURN</option>
+                            <option value="FLOP">FLOP</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="pot">Pot</label>
+                        <input id="pot" type="number" step="0.01" value="100">
+                    </div>
+
+                    <div class="field">
+                        <label for="effectiveStack">Effective Stack</label>
+                        <input id="effectiveStack" type="number" step="0.01" value="500">
+                    </div>
+                    <div class="field">
+                        <label for="allinThreshold">All-in Threshold</label>
+                        <input id="allinThreshold" type="number" step="0.01" value="500">
+                    </div>
+
+                    <div class="field span-2">
+                        <label for="board">Board</label>
+                        <input id="board" type="text" value="As, Ks, Qh, Jh, 2d">
+                    </div>
+
+                    <div class="field span-2 range-mode">
+                        <label for="playerRange">Player Range</label>
+                        <textarea id="playerRange">AQ+</textarea>
+                    </div>
+
+                    <div class="field span-2 range-mode">
+                        <label for="opponentRange">Opponent Range</label>
+                        <textarea id="opponentRange">AT+, KTs+, 66+</textarea>
+                    </div>
+
+                    <div class="field history-mode" style="display:none;">
+                        <label for="heroHand">Hero Hand</label>
+                        <input id="heroHand" type="text" value="AhQc">
+                    </div>
+
+                    <div class="field history-mode" style="display:none;">
+                        <label for="heroPosition">Hero Position</label>
+                        <select id="heroPosition">
+                            <option value="BB">BB</option>
+                            <option value="BTN">BTN</option>
+                        </select>
+                    </div>
+
+                    <div class="field history-mode" style="display:none;">
+                        <label for="villainPosition">Villain Position</label>
+                        <select id="villainPosition">
+                            <option value="BTN">BTN</option>
+                            <option value="BB">BB</option>
+                        </select>
+                    </div>
+
+                    <div class="field span-2 history-mode" style="display:none;">
+                        <label for="actionHistory">Action History</label>
+                        <textarea id="actionHistory">BTN open 2.5
+BB call
+flop BTN bet 33%
+BB call
+turn BTN bet 66%
+BB call
+river BTN jam</textarea>
+                    </div>
+
+                    <div class="field span-2">
+                        <label for="betSizes">Bet Sizes</label>
+                        <input id="betSizes" type="text" value="50, 100, 200">
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button id="solve-button" type="submit">运行求解</button>
+                    <span class="hint">当前页面会直接把这些参数转成 JSON 请求。</span>
+                </div>
+            </form>
+        </section>
+
+        <section class="card result-card">
+            <h2 class="panel-title">求解结果</h2>
+
+            <div class="pill-row">
+                <div class="pill">
+                    <strong>Best Action</strong>
+                    <span id="bestAction">-</span>
+                </div>
+                <div class="pill">
+                    <strong>Best EV</strong>
+                    <span id="bestEv">-</span>
+                </div>
+                <div class="pill">
+                    <strong>Exploitability</strong>
+                    <span id="expl">-</span>
+                </div>
+            </div>
+
+            <div class="status" id="status">等待输入参数。</div>
+
+            <table class="metric-table">
+                <thead>
+                <tr>
+                    <th>Action</th>
+                    <th>Freq</th>
+                    <th>EV</th>
+                </tr>
+                </thead>
+                <tbody id="resultRows">
+                <tr>
+                    <td colspan="3" style="color:#6b6259;">还没有结果，点击“运行求解”开始。</td>
+                </tr>
+                </tbody>
+            </table>
+
+            <div>
+                <h3 style="margin:0 0 10px;font-size:16px;color:#6b6259;">原始响应</h3>
+                <pre id="rawJson">{
+  "actionFreq": {},
+  "ev": {},
+  "bestAction": null,
+  "bestEv": 0,
+  "expl": 0
+}</pre>
+            </div>
+        </section>
+    </div>
+</div>
+
+<script>
+    const form = document.getElementById("solve-form");
+    const button = document.getElementById("solve-button");
+    const statusEl = document.getElementById("status");
+    const bestActionEl = document.getElementById("bestAction");
+    const bestEvEl = document.getElementById("bestEv");
+    const explEl = document.getElementById("expl");
+    const rawJsonEl = document.getElementById("rawJson");
+    const resultRowsEl = document.getElementById("resultRows");
+    const solveModeEl = document.getElementById("solveMode");
+
+    solveModeEl.addEventListener("change", syncMode);
+    syncMode();
+
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const basePayload = {
+            gameType: document.getElementById("gameType").value,
+            players: Number(document.getElementById("players").value),
+            street: document.getElementById("street").value,
+            pot: Number(document.getElementById("pot").value),
+            effectiveStack: Number(document.getElementById("effectiveStack").value),
+            board: document.getElementById("board").value
+                .split(",")
+                .map(item => item.trim())
+                .filter(Boolean),
+            betSizes: document.getElementById("betSizes").value
+                .split(",")
+                .map(item => item.trim())
+                .filter(Boolean)
+                .map(Number),
+            allinThreshold: Number(document.getElementById("allinThreshold").value)
+        };
+        const mode = solveModeEl.value;
+        const endpoint = mode === "history" ? "/api/public/solve-from-history" : "/api/public/solve";
+        const payload = mode === "history"
+            ? {
+                ...basePayload,
+                heroHand: document.getElementById("heroHand").value.trim(),
+                heroPosition: document.getElementById("heroPosition").value,
+                villainPosition: document.getElementById("villainPosition").value,
+                actionHistory: document.getElementById("actionHistory").value
+                    .split("\n")
+                    .map(item => item.trim())
+                    .filter(Boolean)
+            }
+            : {
+                ...basePayload,
+                playerRange: document.getElementById("playerRange").value.trim(),
+                opponentRange: document.getElementById("opponentRange").value.trim()
+            };
+
+        button.disabled = true;
+        statusEl.textContent = "正在求解中，请稍等...";
+        statusEl.className = "status";
+
+        try {
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || "求解失败");
+            }
+
+            renderResult(data);
+            statusEl.textContent = mode === "history"
+                ? "求解完成。结果已经基于 action history 推断范围后计算。"
+                : "求解完成。下面是根节点动作频率与动作 EV。";
+            statusEl.className = "status";
+        } catch (error) {
+            statusEl.textContent = error.message;
+            statusEl.className = "status error";
+            resultRowsEl.innerHTML = `
+                <tr>
+                    <td colspan="3" style="color:#9e2a1a;">${escapeHtml(error.message)}</td>
+                </tr>
+            `;
+        } finally {
+            button.disabled = false;
+        }
+    });
+
+    function renderResult(data) {
+        const actions = Object.keys(data.actionFreq || {});
+        bestActionEl.textContent = data.bestAction ?? "-";
+        bestEvEl.textContent = formatNumber(data.bestEv);
+        explEl.textContent = formatNumber(data.expl);
+        rawJsonEl.textContent = JSON.stringify(data, null, 2);
+
+        if (actions.length === 0) {
+            resultRowsEl.innerHTML = `
+                <tr>
+                    <td colspan="3" style="color:#6b6259;">当前没有可展示的动作结果。</td>
+                </tr>
+            `;
+            return;
+        }
+
+        resultRowsEl.innerHTML = actions.map(action => `
+            <tr>
+                <td>${escapeHtml(action)}</td>
+                <td>${formatPercent(data.actionFreq[action])}</td>
+                <td>${formatNumber((data.ev || {})[action])}</td>
+            </tr>
+        `).join("");
+    }
+
+    function formatPercent(value) {
+        return `${(Number(value || 0) * 100).toFixed(2)}%`;
+    }
+
+    function formatNumber(value) {
+        return Number(value || 0).toFixed(4);
+    }
+
+    function syncMode() {
+        const historyMode = solveModeEl.value === "history";
+        document.querySelectorAll(".history-mode").forEach(node => {
+            node.style.display = historyMode ? "" : "none";
+        });
+        document.querySelectorAll(".range-mode").forEach(node => {
+            node.style.display = historyMode ? "none" : "";
+        });
+    }
+
+    function escapeHtml(text) {
+        return String(text)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll("\"", "&quot;")
+            .replaceAll("'", "&#39;");
+    }
+</script>
+</body>
+</html>
